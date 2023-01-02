@@ -10,6 +10,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.MotionEvent;
@@ -20,6 +21,7 @@ import android.view.View;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraInfo;
+import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageCapture;
@@ -27,6 +29,7 @@ import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
 import androidx.camera.core.TorchState;
+import androidx.camera.core.internal.CameraUseCaseAdapter;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
@@ -144,10 +147,7 @@ public class CameraHelper {
         cameraProvider.addListener(() -> {
             try {
                 provider = cameraProvider.get();
-
-                startCameraX(provider);
-
-
+                startCameraX();
 
                 buttonTriggerCamera.setOnClickListener(view -> capturePhoto(onSaveImage));
 
@@ -165,30 +165,25 @@ public class CameraHelper {
     }
 
 
-    public void startCameraX(ProcessCameraProvider cameraProvider) {
-        cameraProvider.unbindAll();
+    public void startCameraX() {
 
+
+        bindBackCamera();
+
+
+
+    }
+
+    private void createPreview(){
         //preview Use case
         preview = new Preview.Builder().build();
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-
-        //
+    }
+    private void createImageCapture(){
         imageCapture = new ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .setTargetResolution(new Size(1024, 1024))
                 .build();
-
-        cameraSelector = new CameraSelector
-                .Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-
-
-      camera =   provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
-      cameraInfo = camera.getCameraInfo();
-      cameraControl = camera.getCameraControl();
-
-
     }
 
 
@@ -198,6 +193,48 @@ public class CameraHelper {
         imageCapture.takePicture(new ImageCapture.OutputFileOptions.Builder(file).build()
                 , getExecutor()
                 , onSaveImage);
+    }
+
+
+    private void bindBackCamera(){
+        provider.unbindAll();
+        createPreview();
+        createImageCapture();
+        cameraSelector = new CameraSelector
+                .Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
+
+        camera =   provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+        cameraInfo = camera.getCameraInfo();
+        cameraControl = camera.getCameraControl();
+    }
+
+    private void bindFrontCamera(){
+        provider.unbindAll();
+        createPreview();
+        createImageCapture();
+        cameraSelector = new CameraSelector
+                .Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build();
+        try{
+            if(provider.hasCamera(cameraSelector)){
+                camera =   provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+                cameraInfo = camera.getCameraInfo();
+                cameraControl = camera.getCameraControl();
+            }
+
+        }catch (CameraInfoUnavailableException exp){
+            Log.i("Binding front camera exception", exp.toString());
+            bindBackCamera();
+        }
+    }
+
+    public void bindCamera(int cameraSelector){
+        if(CameraSelector.LENS_FACING_BACK == cameraSelector){
+            bindBackCamera();
+        }else{
+            bindFrontCamera();
+        }
     }
 
 

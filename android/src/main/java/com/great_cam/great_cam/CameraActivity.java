@@ -18,6 +18,7 @@ import android.widget.SeekBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.CameraSelector;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
@@ -199,8 +200,13 @@ public class CameraActivity extends AppCompatActivity {
     private void onTapCloseCamera() {
 
         cancelPicture.setOnClickListener(v -> closeCamera());
-        btnClose.setOnClickListener(view -> closeCamera());
+       // btnClose.setOnClickListener(view -> closeCamera());
 
+        btnClose.setOnClickListener(v -> {
+            boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
+            camera.bindCamera(backCamera ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT);
+            cameraViewModel.backCamera.setValue(!backCamera);
+        });
     }
 
 
