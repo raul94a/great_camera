@@ -1,4 +1,5 @@
 package com.great_cam.great_cam.utils;
+
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
@@ -35,7 +36,9 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
+
 import com.google.common.util.concurrent.ListenableFuture;
+
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -43,15 +46,11 @@ import java.util.concurrent.Executor;
 public class CameraHelper {
     private static final String[] CAMERA_PERMISSION = new String[]{Manifest.permission.CAMERA};
     private static final String[] WRITE_PER = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
-
     private static final int CAMERA_REQUEST_CODE = 10;
     private static final int WRITE_CODE = 11;
-
     private Context context;
     private LifecycleOwner lifecycleOwner;
-
     private ListenableFuture<ProcessCameraProvider> cameraProvider;
-
     private ImageCapture imageCapture;
     public Camera camera;
     public CameraInfo cameraInfo;
@@ -60,7 +59,7 @@ public class CameraHelper {
     private CameraSelector cameraSelector;
     public ProcessCameraProvider provider;
     public CameraControl cameraControl;
-
+    public int takePictureDelay = 250;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     static {
@@ -84,40 +83,41 @@ public class CameraHelper {
         }
     }
 
-    public void setZoom(float value){
+    public void setZoom(float value) {
         cameraControl.setZoomRatio(value);
     }
 
-    public boolean hasTorch(){
-       if(cameraInfo == null){
-           return true;
-       }
+    public boolean hasTorch() {
+        if (cameraInfo == null) {
+            return true;
+        }
         return cameraInfo.hasFlashUnit();
     }
 
-    public void enableTorch(){
+    public void enableTorch() {
         assert cameraControl != null;
         cameraControl.enableTorch(true);
     }
 
-    public void disableTorch(){
+    public void disableTorch() {
         assert cameraControl != null;
         cameraControl.enableTorch(false);
     }
-    public boolean isTorchEnabled(){
-        if(!hasTorch()) return false;
-            try{
-                return cameraInfo.getTorchState().getValue() == TorchState.ON;
-            }catch (NullPointerException exception){
-                return false;
-            }
+
+    public boolean isTorchEnabled() {
+        if (!hasTorch()) return false;
+        try {
+            return cameraInfo.getTorchState().getValue() == TorchState.ON;
+        } catch (NullPointerException exception) {
+            return false;
+        }
     }
 
 
-    public boolean setFocus(MotionEvent motionEvent){
+    public boolean setFocus(MotionEvent motionEvent) {
 
-        if(camera == null) return false;
-        MeteringPointFactory pointFactory =  previewView.getMeteringPointFactory();
+        if (camera == null) return false;
+        MeteringPointFactory pointFactory = previewView.getMeteringPointFactory();
         MeteringPoint point = pointFactory.createPoint(motionEvent.getX(), motionEvent.getY());
 
         FocusMeteringAction focus = new FocusMeteringAction.Builder(point).build();
@@ -126,7 +126,6 @@ public class CameraHelper {
         camera.getCameraControl().startFocusAndMetering(focus);
         return true;
     }
-
 
 
     public boolean hasCameraPermission() {
@@ -144,14 +143,14 @@ public class CameraHelper {
         );
         ActivityCompat.requestPermissions(activity, WRITE_PER, WRITE_CODE);
     }
-    public void enableCamera(View buttonTriggerCamera, ImageCapture.OnImageSavedCallback onSaveImage) {
+
+    public void enableCamera() {
 
         cameraProvider = ProcessCameraProvider.getInstance(context);
         cameraProvider.addListener(() -> {
             try {
                 provider = cameraProvider.get();
                 startCameraX();
-                buttonTriggerCamera.setOnClickListener(view -> capturePhoto(onSaveImage));
 
 
             } catch (ExecutionException | InterruptedException e) {
@@ -173,15 +172,15 @@ public class CameraHelper {
         bindBackCamera();
 
 
-
     }
 
-    private void createPreview(){
+    private void createPreview() {
         //preview Use case
         preview = new Preview.Builder().build();
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
     }
-    private void createImageCapture(){
+
+    private void createImageCapture() {
         imageCapture = new ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .setTargetResolution(new Size(1024, 1024))
@@ -189,16 +188,30 @@ public class CameraHelper {
     }
 
 
-    public void capturePhoto(ImageCapture.OnImageSavedCallback onSaveImage) {
+    public void capturePhoto(ImageCapture.OnImageSavedCallback onSaveImage, boolean autoFlash) {
+        if(autoFlash){
+            enableTorch();
+            try {
+                Thread.sleep(takePictureDelay);
+
+            } catch (Exception e) {
+                Log.e("Thread sleep error", e.toString());
+            }
+
+        }
+
+
         String filePath = context.getCacheDir() + File.separator + System.currentTimeMillis() + ".jpg";
         File file = new File(filePath);
         imageCapture.takePicture(new ImageCapture.OutputFileOptions.Builder(file).build()
                 , getExecutor()
                 , onSaveImage);
+
+
     }
 
 
-    private void bindBackCamera(){
+    private void bindBackCamera() {
         provider.unbindAll();
         createPreview();
         createImageCapture();
@@ -206,37 +219,47 @@ public class CameraHelper {
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
 
-        camera =   provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+        camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
         cameraInfo = camera.getCameraInfo();
         cameraControl = camera.getCameraControl();
     }
 
-    private void bindFrontCamera(){
+    private void bindFrontCamera() {
         provider.unbindAll();
         createPreview();
         createImageCapture();
         cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build();
-        try{
-            if(provider.hasCamera(cameraSelector)){
-                camera =   provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+        try {
+            if (provider.hasCamera(cameraSelector)) {
+                camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
                 cameraInfo = camera.getCameraInfo();
                 cameraControl = camera.getCameraControl();
             }
 
-        }catch (CameraInfoUnavailableException exp){
+        } catch (CameraInfoUnavailableException exp) {
             Log.i("Binding front camera exception", exp.toString());
             bindBackCamera();
         }
     }
 
-    public void bindCamera(boolean backCamera){
-        if(backCamera){
+    public void bindCamera(boolean backCamera) {
+        if (backCamera) {
             bindBackCamera();
-        }else{
+        } else {
             bindFrontCamera();
         }
+    }
+
+    public void setTakePictureDelay(int delay){
+        if(delay <= 0){
+            takePictureDelay = 250;
+            return;
+        }
+
+        takePictureDelay = delay;
+
     }
 
 

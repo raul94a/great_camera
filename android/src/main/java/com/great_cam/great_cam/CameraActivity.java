@@ -5,12 +5,8 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
-import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -18,24 +14,21 @@ import android.widget.SeekBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.MeteringPoint;
-import androidx.camera.core.MeteringPointFactory;
-import androidx.camera.core.ZoomState;
-import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.material.slider.Slider;
 import com.great_cam.great_cam.utils.CameraHelper;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
+
+import java.util.Objects;
+
+enum FlashType {
+    AUTO, OFF, ON
+}
 
 public class CameraActivity extends AppCompatActivity {
     private ImageView cancelPicture, refreshPicture, validPicture, flash, btnClose, imgPreview, btnPicture;
@@ -46,6 +39,7 @@ public class CameraActivity extends AppCompatActivity {
     private ConstraintLayout root;
     private SeekBar slider;
 
+    private FlashType flashtype = FlashType.OFF;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,11 +47,17 @@ public class CameraActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_camera);
         setLayout();
-        cameraViewModel = new ViewModelProvider(this, ViewModelProvider.Factory.from(CameraViewModel.initializer)).get(CameraViewModel.class);
+        initializeCameraHelper();
         startCameraStreaming();
         cameraActionsHandler();
         observe();
 
+    }
+
+    private void initializeCameraHelper() {
+        cameraViewModel = new ViewModelProvider(this,
+                ViewModelProvider.Factory.from(CameraViewModel.initializer)
+        ).get(CameraViewModel.class);
     }
 
     private void observe() {
@@ -87,6 +87,7 @@ public class CameraActivity extends AppCompatActivity {
         onTapRefresh();
         onTapValidate();
         changeTorchStatus();
+        onTapTakePicture();
     }
 
     private void setCameraHandler() {
@@ -99,9 +100,33 @@ public class CameraActivity extends AppCompatActivity {
 
     private void startCameraStreaming() {
         setCameraHandler();
-        onClickTakePicture();
+        enableCamera();
     }
 
+    private void onTapTakePicture() {
+        btnPicture.setOnClickListener(v -> {
+
+            camera.capturePhoto(new ImageCapture.OnImageSavedCallback() {
+                @Override
+                public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                    Log.i("onImageSaved", "" + outputFileResults.getSavedUri());
+                    String path = Objects.requireNonNull(outputFileResults.getSavedUri()).getPath();
+                    cameraViewModel.picturePath.setValue(path);
+                    Log.i("Path", " " + path);
+                    imgPreview.setImageBitmap(BitmapFactory.decodeFile(path));
+                    cameraViewModel.show();
+                    hideFlash();
+
+                }
+
+                @Override
+                public void onError(@NonNull ImageCaptureException exception) {
+                    Log.e("ImageCaptureException", exception.toString());
+                }
+            }, flashtype == FlashType.AUTO);
+
+        });
+    }
 
     private boolean hasTorch() {
         if (camera == null) return false;
@@ -112,27 +137,26 @@ public class CameraActivity extends AppCompatActivity {
         if (!hasTorch()) return;
 
         flash.setOnClickListener(v -> {
-            if (camera.isTorchEnabled()) {
-                camera.disableTorch();
-
-
-                int image = getResources().getIdentifier("@drawable/ic_flash_off", null, getPackageName());
-
-                flash.setImageDrawable(ContextCompat.getDrawable(this, image));
-            } else {
-                camera.enableTorch();
-                int image = getResources().getIdentifier("@drawable/ic_flash_on", null, getPackageName());
-
-                flash.setImageDrawable(ContextCompat.getDrawable(this, image));
+            switch (flashtype) {
+                case OFF:
+                    int image = getResources().getIdentifier("@drawable/ic_flash_auto", null, getPackageName());
+                    flash.setImageDrawable(ContextCompat.getDrawable(this, image));
+                    flashtype = FlashType.AUTO;
+                    break;
+                case AUTO:
+                    image = getResources().getIdentifier("@drawable/ic_flash_on", null, getPackageName());
+                    flash.setImageDrawable(ContextCompat.getDrawable(this, image));
+                    flashtype = FlashType.ON;
+                    camera.enableTorch();
+                    break;
+                default:
+                    image = getResources().getIdentifier("@drawable/ic_flash_off", null, getPackageName());
+                    flash.setImageDrawable(ContextCompat.getDrawable(this, image));
+                    flashtype = FlashType.OFF;
+                    camera.disableTorch();
+                    break;
             }
         });
-    }
-
-    private void hideFlashIfNoTorch() {
-        if (!hasTorch()) {
-            flash.setVisibility(View.INVISIBLE);
-            flash.setEnabled(false);
-        }
     }
 
     private void hideFlash() {
@@ -156,25 +180,8 @@ public class CameraActivity extends AppCompatActivity {
         refreshPicture.setOnClickListener(v -> refresh());
     }
 
-    private void onClickTakePicture() {
-        camera.enableCamera(btnPicture, new ImageCapture.OnImageSavedCallback() {
-            @Override
-            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                Log.i("onImageSaved", "" + outputFileResults.getSavedUri());
-                String path = outputFileResults.getSavedUri().getPath();
-                cameraViewModel.picturePath.setValue(path);
-                Log.i("Path", " " + path);
-                imgPreview.setImageBitmap(BitmapFactory.decodeFile(path));
-                cameraViewModel.show();
-                hideFlash();
-
-            }
-
-            @Override
-            public void onError(@NonNull ImageCaptureException exception) {
-                Log.e("ImageCaptureException", exception.toString());
-            }
-        });
+    private void enableCamera() {
+        camera.enableCamera();
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -206,7 +213,7 @@ public class CameraActivity extends AppCompatActivity {
     private void onTapCloseCamera() {
 
         cancelPicture.setOnClickListener(v -> closeCamera());
-       // btnClose.setOnClickListener(view -> closeCamera());
+        // btnClose.setOnClickListener(view -> closeCamera());
 
         btnClose.setOnClickListener(v -> {
             boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
@@ -258,9 +265,8 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        Log.i("OnBackPressed", "testing");
         Intent returnIntent = new Intent();
-        returnIntent.putExtra("path", cameraViewModel.picturePath.getValue());
+        returnIntent.putExtra("path", "");
         setResult(Activity.RESULT_OK, returnIntent);
         finish();
     }
