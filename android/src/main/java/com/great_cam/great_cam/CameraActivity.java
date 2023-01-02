@@ -250,6 +250,11 @@ public class CameraActivity extends AppCompatActivity {
         flash = getView(R.id.flash);
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+    }
+
     private <T> T getView(int resource) {
         return (T) this.findViewById(resource);
     }

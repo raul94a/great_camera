@@ -106,8 +106,11 @@ public class CameraHelper {
     }
     public boolean isTorchEnabled(){
         if(!hasTorch()) return false;
-
-        return cameraInfo.getTorchState().getValue() == TorchState.ON;
+            try{
+                return cameraInfo.getTorchState().getValue() == TorchState.ON;
+            }catch (NullPointerException exception){
+                return false;
+            }
     }
 
 
@@ -148,7 +151,6 @@ public class CameraHelper {
             try {
                 provider = cameraProvider.get();
                 startCameraX();
-
                 buttonTriggerCamera.setOnClickListener(view -> capturePhoto(onSaveImage));
 
 
