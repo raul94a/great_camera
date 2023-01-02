@@ -231,8 +231,8 @@ public class CameraHelper {
         }
     }
 
-    public void bindCamera(int cameraSelector){
-        if(CameraSelector.LENS_FACING_BACK == cameraSelector){
+    public void bindCamera(boolean backCamera){
+        if(backCamera){
             bindBackCamera();
         }else{
             bindFrontCamera();

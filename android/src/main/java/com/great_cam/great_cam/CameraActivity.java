@@ -204,7 +204,7 @@ public class CameraActivity extends AppCompatActivity {
 
         btnClose.setOnClickListener(v -> {
             boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
-            camera.bindCamera(backCamera ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT);
+            camera.bindCamera(backCamera);
             cameraViewModel.backCamera.setValue(!backCamera);
         });
     }
@@ -252,7 +252,11 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        Log.i("OnBackPressed", "testing");
+        Intent returnIntent = new Intent();
+        returnIntent.putExtra("path", cameraViewModel.picturePath.getValue());
+        setResult(Activity.RESULT_OK, returnIntent);
+        finish();
     }
 
     private <T> T getView(int resource) {
