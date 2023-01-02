@@ -8,7 +8,6 @@ environment:
   flutter: ">=2.5.0"
 
 dependencies:
-  permission_handler: ^10.2.0
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.0.2

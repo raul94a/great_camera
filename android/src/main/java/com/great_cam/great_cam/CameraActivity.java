@@ -28,6 +28,8 @@ import androidx.camera.core.ZoomState;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -112,12 +114,16 @@ public class CameraActivity extends AppCompatActivity {
         flash.setOnClickListener(v -> {
             if (camera.isTorchEnabled()) {
                 camera.disableTorch();
+
+
                 int image = getResources().getIdentifier("@drawable/ic_flash_off", null, getPackageName());
-                flash.setImageDrawable(getResources().getDrawable(image));
+
+                flash.setImageDrawable(ContextCompat.getDrawable(this, image));
             } else {
                 camera.enableTorch();
                 int image = getResources().getIdentifier("@drawable/ic_flash_on", null, getPackageName());
-                flash.setImageDrawable(getResources().getDrawable(image));
+
+                flash.setImageDrawable(ContextCompat.getDrawable(this, image));
             }
         });
     }
