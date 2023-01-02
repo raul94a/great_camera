@@ -12,11 +12,19 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Size;
 import android.util.SparseIntArray;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+
+import androidx.camera.core.Camera;
+import androidx.camera.core.CameraControl;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.MeteringPoint;
+import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
@@ -37,12 +45,17 @@ public class CameraHelper {
 
     private Context context;
     private LifecycleOwner lifecycleOwner;
-    private String filepath;
-    public ListenableFuture<ProcessCameraProvider> cameraProvider;
+
+    private ListenableFuture<ProcessCameraProvider> cameraProvider;
+
     private ImageCapture imageCapture;
+    public Camera camera;
+    public CameraInfo cameraInfo;
     private PreviewView previewView;
     private Preview preview;
-    private ProcessCameraProvider provider;
+    private CameraSelector cameraSelector;
+    public ProcessCameraProvider provider;
+    public CameraControl cameraControl;
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
@@ -70,6 +83,19 @@ public class CameraHelper {
     }
 
 
+    public boolean setFocus(MotionEvent motionEvent){
+
+        if(camera == null) return false;
+        MeteringPointFactory pointFactory =  previewView.getMeteringPointFactory();
+        MeteringPoint point = pointFactory.createPoint(motionEvent.getX(), motionEvent.getY());
+
+        FocusMeteringAction focus = new FocusMeteringAction.Builder(point).build();
+
+
+        camera.getCameraControl().startFocusAndMetering(focus);
+        return true;
+    }
+
 
 
     public boolean hasCameraPermission() {
@@ -95,6 +121,7 @@ public class CameraHelper {
                 provider = cameraProvider.get();
 
                 startCameraX(provider);
+
 
 
                 buttonTriggerCamera.setOnClickListener(view -> capturePhoto(onSaveImage));
@@ -127,11 +154,14 @@ public class CameraHelper {
                 .setTargetResolution(new Size(1024, 1024))
                 .build();
 
-        CameraSelector cameraSelector = new CameraSelector
+        cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
 
-        provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+
+      camera =   provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+      cameraInfo = camera.getCameraInfo();
+      cameraControl = camera.getCameraControl();
 
 
     }
@@ -140,24 +170,9 @@ public class CameraHelper {
     public void capturePhoto(ImageCapture.OnImageSavedCallback onSaveImage) {
         String filePath = context.getCacheDir() + File.separator + System.currentTimeMillis() + ".jpg";
         File file = new File(filePath);
-        setFilepath(filePath);
         imageCapture.takePicture(new ImageCapture.OutputFileOptions.Builder(file).build()
                 , getExecutor()
                 , onSaveImage);
-    }
-
-    private void setFilepath(String filepath) {
-        this.filepath = filepath;
-    }
-
-    public String getFilepath() {
-        String filepath = this.filepath;
-        this.filepath = "";
-        return filepath;
-    }
-
-    public interface onSaveImageCallback {
-        void onSave();
     }
 
 
