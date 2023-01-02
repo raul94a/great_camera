@@ -26,6 +26,7 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
+import androidx.camera.core.TorchState;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
@@ -78,8 +79,32 @@ public class CameraHelper {
         if (provider != null) {
             provider.unbindAll();
         }
+    }
 
+    public void setZoom(float value){
+        cameraControl.setZoomRatio(value);
+    }
 
+    public boolean hasTorch(){
+       if(cameraInfo == null){
+           return true;
+       }
+        return cameraInfo.hasFlashUnit();
+    }
+
+    public void enableTorch(){
+        assert cameraControl != null;
+        cameraControl.enableTorch(true);
+    }
+
+    public void disableTorch(){
+        assert cameraControl != null;
+        cameraControl.enableTorch(false);
+    }
+    public boolean isTorchEnabled(){
+        if(!hasTorch()) return false;
+
+        return cameraInfo.getTorchState().getValue() == TorchState.ON;
     }
 
 

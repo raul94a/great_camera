@@ -19,8 +19,7 @@ public class CameraViewModel extends ViewModel {
 
     public MutableLiveData<Boolean> showPreview = new MutableLiveData<>(false);
     public MutableLiveData<String> picturePath = new MutableLiveData<>("");
-    public MutableLiveData<Float> zoomScaleFactor = new MutableLiveData<>(1.0f);
-    public MutableLiveData<Float> previousFocus = new MutableLiveData<>(1.0f);
+
     public MutableLiveData<Boolean> isUpdatingZoom = new MutableLiveData<>(false);
 
     public CameraViewModel() {
@@ -39,9 +38,7 @@ public class CameraViewModel extends ViewModel {
         showPreview.setValue(false);
     }
 
-    public void setPreviousFocus(float value) {
-        previousFocus.setValue(value);
-    }
+
 
     public boolean removeImage() {
         String path = Objects.requireNonNull(picturePath.getValue());
@@ -58,29 +55,6 @@ public class CameraViewModel extends ViewModel {
 
     }
 
-
-    public void zoomIn(float v) {
-        float value = zoomScaleFactor.getValue();
-        setPreviousFocus(v);
-        if (zoomScaleFactor.getValue() == 2.0f) {
-            return;
-        }
-        Log.i("Triggering ZOOM IN", "TRUE");
-
-        zoomScaleFactor.setValue(value + 0.01f);
-    }
-
-    public void zoomOut(float v) {
-        float value = zoomScaleFactor.getValue();
-        setPreviousFocus(v);
-        if (zoomScaleFactor.getValue() == 1.0f) {
-
-
-            return;
-        }
-        Log.i("Triggering ZOOM OUT", "TRUE");
-        zoomScaleFactor.setValue(value - 0.01f);
-    }
 
 
 }

@@ -14,6 +14,7 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,21 +30,18 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.slider.Slider;
 import com.great_cam.great_cam.utils.CameraHelper;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
 
 public class CameraActivity extends AppCompatActivity {
+    private ImageView cancelPicture, refreshPicture, validPicture, flash, btnClose, imgPreview, btnPicture;
+    private LinearLayout handler, previewButtons;
     private CameraHelper camera;
     private PreviewView preview;
-    private ImageView btnPicture;
-    private ImageView btnClose;
-    private ImageView imgPreview;
-    private LinearLayout handler;
-    private LinearLayout previewButtons;
     private CameraViewModel cameraViewModel;
     private ConstraintLayout root;
-    private ImageView cancelPicture, refreshPicture, validPicture;
-    private String direction;
+    private SeekBar slider;
 
 
     @Override
@@ -62,11 +60,13 @@ public class CameraActivity extends AppCompatActivity {
     private void observe() {
         cameraViewModel.showPreview.observe(this, show -> {
             if (show) {
+                slider.setVisibility(View.GONE);
                 preview.setVisibility(View.GONE);
-                imgPreview.setVisibility(View.VISIBLE);
                 handler.setVisibility(View.GONE);
+                imgPreview.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.VISIBLE);
             } else {
+                slider.setVisibility(View.VISIBLE);
                 preview.setVisibility(View.VISIBLE);
                 handler.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.GONE);
@@ -78,10 +78,12 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void cameraActionsHandler() {
+        onSeekBarChange();
         focusImage();
         onTapCloseCamera();
         onTapRefresh();
         onTapValidate();
+        changeTorchStatus();
     }
 
     private void setCameraHandler() {
@@ -92,115 +94,52 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
-
     private void startCameraStreaming() {
         setCameraHandler();
         onClickTakePicture();
-
-
     }
 
 
-    GestureDetector.SimpleOnGestureListener gestureListener = new GestureDetector.SimpleOnGestureListener() {
-        @Override
-        public boolean onScroll(@NonNull MotionEvent e1, @NonNull MotionEvent e2, float distanceX, float distanceY) {
+    private boolean hasTorch() {
+        if (camera == null) return false;
+        return camera.hasTorch();
+    }
 
-            Log.i("MotionEnvet1", " " + e1);
-            Log.i("MotionEnvet1", " " + e2);
+    private void changeTorchStatus() {
+        if (!hasTorch()) return;
 
-            return super.onScroll(e1, e2, distanceX, distanceY);
-        }
-    };
-
-
-    ScaleGestureDetector.SimpleOnScaleGestureListener zoomListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        @Override
-        public boolean onScaleBegin(@NonNull ScaleGestureDetector detector) {
-            Log.i("onScale begin detector", " " + detector.getScaleFactor());
-            return super.onScaleBegin(detector);
-        }
-
-        @Override
-        public void onScaleEnd(@NonNull ScaleGestureDetector detector) {
-            Log.i("onScale  detector", " " + detector.getScaleFactor());
-
-            super.onScaleEnd(detector);
-        }
-
-        @Override
-        public boolean onScale(@NonNull ScaleGestureDetector detector) {
-
-            Log.i("Detector", " " + detector.getCurrentSpan());
-
-
-            zoomHandler(detector);
-
-
-            return super.onScale(detector);
-        }
-    };
-
-    @SuppressLint("ClickableViewAccessibility")
-    private void focusImage() {
-
-//        root.setOnTouchListener((v, motionEvent)->{
-//            return new ScaleGestureDetector(getApplicationContext(), zoomListener).onTouchEvent(motionEvent);
-//        });
-
-        preview.setOnTouchListener((view, motionEvent) -> {
-
-            new ScaleGestureDetector(getApplicationContext(), zoomListener).onTouchEvent(motionEvent);
-            return camera.setFocus(motionEvent);
-
-
+        flash.setOnClickListener(v -> {
+            if (camera.isTorchEnabled()) {
+                camera.disableTorch();
+                int image = getResources().getIdentifier("@drawable/ic_flash_off", null, getPackageName());
+                flash.setImageDrawable(getResources().getDrawable(image));
+            } else {
+                camera.enableTorch();
+                int image = getResources().getIdentifier("@drawable/ic_flash_on", null, getPackageName());
+                flash.setImageDrawable(getResources().getDrawable(image));
+            }
         });
     }
 
-    private void zoomHandler(ScaleGestureDetector detector) {
-            if(Boolean.TRUE.equals(cameraViewModel.isUpdatingZoom.getValue())){
-                return;
-            }
-            cameraViewModel.isUpdatingZoom.setValue(true);
-
-            ZoomState state = camera.cameraInfo.getZoomState().getValue();
-            Log.i("ZoomState", " " + state);
-            float value = cameraViewModel.previousFocus.getValue();
-            float x2 = 0.0f;
-            x2 = detector.getCurrentSpanX();
-
-
-            final float copyV = x2;
-            Log.i("PreviousX", " " + x2);
-            Log.i("ViewModelPreviousFocus", " " + value);
-
-            if (copyV > value) {
-                if (state.getZoomRatio() > 9.5f) {
-
-                    cameraViewModel.setPreviousFocus(9999.0f);
-                    cameraViewModel.isUpdatingZoom.setValue(false);
-                    return;
-                }
-                camera.cameraControl.setZoomRatio(state.getZoomRatio() + 0.3f);
-                cameraViewModel.setPreviousFocus(copyV);
-
-            } else {
-                if (state.getZoomRatio() == 1.1f) {
-                    cameraViewModel.setPreviousFocus(0.0f);
-                    cameraViewModel.isUpdatingZoom.setValue(false);
-
-                    return;
-                }
-                camera.cameraControl.setZoomRatio(state.getZoomRatio() - 0.3f);
-                cameraViewModel.setPreviousFocus(copyV);
-
-            }
-
-            cameraViewModel.isUpdatingZoom.setValue(false);
-
-
-
+    private void hideFlashIfNoTorch() {
+        if (!hasTorch()) {
+            flash.setVisibility(View.INVISIBLE);
+            flash.setEnabled(false);
+        }
     }
 
+    private void hideFlash() {
+        if (!hasTorch()) return;
+        if (camera.isTorchEnabled()) {
+            camera.disableTorch();
+
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void focusImage() {
+        preview.setOnTouchListener((view, motionEvent) -> camera.setFocus(motionEvent));
+    }
 
     private void onTapValidate() {
         validPicture.setOnClickListener(v -> validate());
@@ -220,12 +159,39 @@ public class CameraActivity extends AppCompatActivity {
                 Log.i("Path", " " + path);
                 imgPreview.setImageBitmap(BitmapFactory.decodeFile(path));
                 cameraViewModel.show();
+                hideFlash();
 
             }
 
             @Override
             public void onError(@NonNull ImageCaptureException exception) {
                 Log.e("ImageCaptureException", exception.toString());
+            }
+        });
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void onSeekBarChange() {
+
+
+        slider.setOnTouchListener((view, motionEvent) -> false);
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                int progress = seekBar.getProgress();
+                Log.i("SeekBar is changing", " " + progress);
+                Log.i("SeekBar is changing", " " + i);
+                camera.setZoom(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
             }
         });
     }
@@ -263,7 +229,9 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void setLayout() {
+
         root = getView(R.id.cameraLayout);
+        slider = getView(R.id.zoomSlider);
         preview = getView(R.id.cameraPreview);
         btnPicture = getView(R.id.buttTakePicture);
         btnClose = getView(R.id.buttCancelCamera);
@@ -273,6 +241,7 @@ public class CameraActivity extends AppCompatActivity {
         cancelPicture = getView(R.id.cancelPicture);
         validPicture = getView(R.id.validPicture);
         refreshPicture = getView(R.id.refreshPicture);
+        flash = getView(R.id.flash);
     }
 
     private <T> T getView(int resource) {
