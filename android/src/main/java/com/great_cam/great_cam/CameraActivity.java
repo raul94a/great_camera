@@ -3,10 +3,15 @@ package com.great_cam.great_cam;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -38,8 +43,15 @@ public class CameraActivity extends AppCompatActivity {
     private CameraViewModel cameraViewModel;
     private ConstraintLayout root;
     private SeekBar slider;
-
     private FlashType flashtype = FlashType.OFF;
+
+    private final String CAMERA_BACK_ASSET = "@drawable/ic_camera_back";
+    private final String CAMERA_FRONT_ASSET = "@drawable/ic_camera_front";
+    private final String CAMERA_SWITCH = "@drawable/ic_camera_switch";
+
+
+    private boolean startTracking = true;
+    private int progress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +94,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private void cameraActionsHandler() {
         onSeekBarChange();
+        onTapSwitchCamera();
         focusImage();
         onTapCloseCamera();
         onTapRefresh();
@@ -188,40 +201,59 @@ public class CameraActivity extends AppCompatActivity {
     private void onSeekBarChange() {
 
 
-        slider.setOnTouchListener((view, motionEvent) -> false);
         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                int progress = seekBar.getProgress();
-                Log.i("SeekBar is changing", " " + progress);
-                Log.i("SeekBar is changing", " " + i);
-                camera.setZoom(progress);
+
+                if (progress == i) {
+                    return;
+                }
+
+                if (Boolean.TRUE.equals(cameraViewModel.isDrag.getValue())) {
+
+                    camera.setZoom(slider.getProgress());
+                } else {
+                   
+                    if (Math.abs(progress - i) > 1) {
+                        seekBar.setProgress(progress);   camera.setZoom(slider.getProgress());
+
+                    } else {
+                        cameraViewModel.isDrag.setValue(true);
+                    }
+                }
+
+
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
+                Log.i("OnStartTrackingTouch", "...00");
+                progress = seekBar.getProgress();
+                seekBar.setProgress(progress);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                cameraViewModel.isDrag.setValue(false);
+                Log.i("Is drag on stop", " " + cameraViewModel.isDrag.getValue());
 
             }
         });
+
+
     }
 
     private void onTapCloseCamera() {
-
         cancelPicture.setOnClickListener(v -> closeCamera());
-        // btnClose.setOnClickListener(view -> closeCamera());
+    }
 
+    private void onTapSwitchCamera() {
         btnClose.setOnClickListener(v -> {
             boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
-            camera.bindCamera(backCamera);
+            camera.bindCamera(!backCamera);
             cameraViewModel.backCamera.setValue(!backCamera);
         });
     }
-
 
     private void closeCamera() {
         camera.unbindAll();

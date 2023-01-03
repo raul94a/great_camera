@@ -25,6 +25,7 @@
         android:layout_height="match_parent"
         android:layout_margin="0dp"
         android:foregroundGravity="right"
+
         android:progressTint="#F8EDED"
         android:rotation="270"
         android:scaleX="2.5"
@@ -71,7 +72,7 @@
             android:layout_gravity="center"
 
             android:layout_marginHorizontal="20dp"
-            android:src="@drawable/ic_close" />
+            android:src="@drawable/ic_camera_switch" />
 
         <ImageView
             android:id="@+id/buttTakePicture"

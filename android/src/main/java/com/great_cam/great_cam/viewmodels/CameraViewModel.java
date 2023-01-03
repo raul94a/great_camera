@@ -22,7 +22,7 @@ public class CameraViewModel extends ViewModel {
 
     public MutableLiveData<Boolean> isUpdatingZoom = new MutableLiveData<>(false);
     public MutableLiveData<Boolean> backCamera = new MutableLiveData<>(true);
-
+    public MutableLiveData<Boolean> isDrag  = new MutableLiveData<>(false);
     public CameraViewModel() {
     }
 

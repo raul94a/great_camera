@@ -84,7 +84,7 @@ public class CameraHelper {
     }
 
     public void setZoom(float value) {
-        cameraControl.setZoomRatio(value);
+        camera.getCameraControl().setZoomRatio(value);
     }
 
     public boolean hasTorch() {
