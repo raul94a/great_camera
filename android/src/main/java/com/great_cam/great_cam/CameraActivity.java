@@ -24,6 +24,7 @@ import androidx.camera.core.CameraState;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ZoomState;
+import androidx.camera.video.FileOutputOptions;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
@@ -32,6 +33,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.great_cam.great_cam.utils.CameraHelper;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
 
+import java.io.File;
 import java.util.Objects;
 
 enum FlashType {
@@ -124,7 +126,7 @@ public class CameraActivity extends AppCompatActivity {
     private void onTapTakePicture() {
         btnPicture.setOnClickListener(v -> {
 
-            camera.capturePhoto(new ImageCapture.OnImageSavedCallback() {
+           /* camera.capturePhoto(new ImageCapture.OnImageSavedCallback() {
                 @Override
                 public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                     Log.i("onImageSaved", "" + outputFileResults.getSavedUri());
@@ -141,7 +143,12 @@ public class CameraActivity extends AppCompatActivity {
                 public void onError(@NonNull ImageCaptureException exception) {
                     Log.e("ImageCaptureException", exception.toString());
                 }
-            }, flashtype == FlashType.AUTO);
+            }, flashtype == FlashType.AUTO);*/
+            if(camera.recording != null){
+                camera.stopVideo();
+                return;
+            }
+            camera.captureVideo();
 
         });
     }

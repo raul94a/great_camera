@@ -2,6 +2,8 @@ package com.great_cam.great_cam.utils;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.camera2.CameraCaptureSession;
@@ -9,8 +11,10 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.media.ImageReader;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -19,6 +23,8 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraInfo;
@@ -32,14 +38,29 @@ import androidx.camera.core.Preview;
 import androidx.camera.core.TorchState;
 import androidx.camera.core.internal.CameraUseCaseAdapter;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.video.FallbackStrategy;
+import androidx.camera.video.FileOutputOptions;
+import androidx.camera.video.MediaStoreOutputOptions;
+import androidx.camera.video.PendingRecording;
+import androidx.camera.video.Quality;
+import androidx.camera.video.QualitySelector;
+import androidx.camera.video.Recorder;
+import androidx.camera.video.Recording;
+import androidx.camera.video.VideoCapture;
+import androidx.camera.video.VideoOutput;
+import androidx.camera.video.VideoRecordEvent;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.util.Consumer;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
@@ -60,6 +81,13 @@ public class CameraHelper {
     public ProcessCameraProvider provider;
     public CameraControl cameraControl;
     public int takePictureDelay = 250;
+    public Recorder recorder;
+    public VideoCapture<VideoOutput> videoCapture;
+    public PendingRecording pendingRecording;
+    public Recording recording;
+    private final QualitySelector qualitySelector =
+            QualitySelector.fromOrderedList(Arrays.asList(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD),
+                    FallbackStrategy.lowerQualityOrHigherThan(Quality.SD));
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     static {
@@ -169,7 +197,7 @@ public class CameraHelper {
     public void startCameraX() {
 
 
-        bindBackCamera();
+        bindBackCameraVideo();
 
 
     }
@@ -189,7 +217,7 @@ public class CameraHelper {
 
 
     public void capturePhoto(ImageCapture.OnImageSavedCallback onSaveImage, boolean autoFlash) {
-        if(autoFlash){
+        if (autoFlash) {
             enableTorch();
             try {
                 Thread.sleep(takePictureDelay);
@@ -197,19 +225,70 @@ public class CameraHelper {
             } catch (Exception e) {
                 Log.e("Thread sleep error", e.toString());
             }
-
         }
-
 
         String filePath = context.getCacheDir() + File.separator + System.currentTimeMillis() + ".jpg";
         File file = new File(filePath);
         imageCapture.takePicture(new ImageCapture.OutputFileOptions.Builder(file).build()
                 , getExecutor()
                 , onSaveImage);
+    }
+
+    public Consumer<VideoRecordEvent> captureListener = videoRecordEvent -> {
+
+    };
+
+    public void captureVideo() {
+
+        String name = context.getCacheDir().getPath() + File.separator + System.currentTimeMillis() + ".mp4";
+       FileOutputOptions options = new FileOutputOptions.Builder(new File(name)).build();
+
+        pendingRecording = recorder.prepareRecording(context, options);
+        recording = pendingRecording.start(
+                ContextCompat.getMainExecutor(context),
+                captureListener
+        );
+        Log.i("Recording", " " + recording);
 
 
     }
 
+    public void stopVideo() {
+        recording.stop();
+        pendingRecording = null;
+        recording = null;
+    }
+
+    public void pauseVideo() {
+        recording.pause();
+    }
+
+    public void resumeVideo() {
+        recording.resume();
+    }
+
+    public void closeVideo() {
+        recording.close();
+    }
+
+    private void bindBackCameraVideo() {
+        provider.unbindAll();
+        createPreview();
+        recorder = new Recorder.Builder()
+                .setExecutor(ContextCompat.getMainExecutor(context))
+                .setQualitySelector(qualitySelector)
+                .build();
+        videoCapture = VideoCapture.withOutput(recorder);
+        cameraSelector = new CameraSelector
+                .Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
+        try {
+            camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, videoCapture);
+            Log.i("Bind Video", "Video bounded");
+        } catch (Exception e) {
+            Log.e("Exception", e.toString());
+        }
+    }
 
     private void bindBackCamera() {
         provider.unbindAll();
@@ -252,8 +331,8 @@ public class CameraHelper {
         }
     }
 
-    public void setTakePictureDelay(int delay){
-        if(delay <= 0){
+    public void setTakePictureDelay(int delay) {
+        if (delay <= 0) {
             takePictureDelay = 250;
             return;
         }

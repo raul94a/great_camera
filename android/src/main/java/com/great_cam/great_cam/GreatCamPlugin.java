@@ -2,6 +2,8 @@ package com.great_cam.great_cam;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -71,6 +73,8 @@ public class GreatCamPlugin implements FlutterPlugin, ActivityAware, MethodCallH
     private void startCameraActivity(Result result) {
         pendingResult = result;
         Intent intent = new Intent(activity, CameraActivity.class);
+        Intent videoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        videoIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
         activity.startActivityForResult(intent, 1);
 
     }
@@ -78,9 +82,26 @@ public class GreatCamPlugin implements FlutterPlugin, ActivityAware, MethodCallH
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 
-
+        Log.i("DATA", " " + data.getData());
+        if(data != null){
+            Uri uri = data.getData();
+            if(uri != null){
+                path = uri.getPath();
+                pendingResult.success(path);
+                clearPendingResult();
+                return true;
+            }
+        }
         path = data.getStringExtra("path");
+        if(path == null){
+            path = data.getStringExtra("dat");
+            pendingResult.success(path.isEmpty() ? null : path );
+            clearPendingResult();
+            Log.e("Image path", "" + path);
+            return true;
+        }
         Log.e("Image path", "" + path);
+
         if (path.isEmpty()) {
             pendingResult.success(null);
         } else {
