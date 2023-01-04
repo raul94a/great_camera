@@ -19,33 +19,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <SeekBar
-        android:id="@+id/zoomSlider"
-        android:layout_width="200dp"
-        android:layout_height="match_parent"
-        android:layout_margin="0dp"
-        android:foregroundGravity="right"
+<!--    <SeekBar-->
+<!--        android:id="@+id/zoomSlider"-->
+<!--        android:layout_width="200dp"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:layout_margin="0dp"-->
+<!--        android:foregroundGravity="right"-->
 
-        android:progressTint="#F8EDED"
-        android:rotation="270"
-        android:scaleX="2.5"
-        android:scaleY="2.5"
-        android:theme="@style/Theme.AppCompat"
-        android:translationX="80dp"
-        android:valueFrom="1.0"
-        android:min="1"
-        android:max="10"
+<!--        android:progressTint="#F8EDED"-->
+<!--        android:rotation="270"-->
+<!--        android:scaleX="2.5"-->
+<!--        android:scaleY="2.5"-->
+<!--        android:theme="@style/Theme.AppCompat"-->
+<!--        android:translationX="80dp"-->
+<!--        android:valueFrom="1.0"-->
+<!--        android:min="1"-->
+<!--        android:max="10"-->
 
-        android:valueTo="10.0"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0"
-        app:trackColorActive="@color/white"
-        app:trackColorInactive="@color/black" />
+<!--        android:valueTo="10.0"-->
+<!--        android:visibility="visible"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent"-->
+<!--        app:trackColorActive="@color/white"-->
+<!--        app:trackColorInactive="@color/black" />-->
 
 
     <LinearLayout
