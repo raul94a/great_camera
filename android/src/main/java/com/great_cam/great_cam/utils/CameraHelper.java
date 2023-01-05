@@ -128,7 +128,7 @@ public class CameraHelper {
     }
 
     public void disableTorch() {
-        assert cameraControl != null;
+        if(cameraControl == null) return;
         cameraControl.enableTorch(false);
     }
 
@@ -197,7 +197,7 @@ public class CameraHelper {
     public void startCameraX() {
 
 
-        bindBackCameraVideo();
+        bindBackCamera();
 
 
     }
@@ -241,13 +241,15 @@ public class CameraHelper {
     public void captureVideo() {
 
         String name = context.getCacheDir().getPath() + File.separator + System.currentTimeMillis() + ".mp4";
-       FileOutputOptions options = new FileOutputOptions.Builder(new File(name)).build();
+        FileOutputOptions options = new FileOutputOptions.Builder(new File(name)).build();
 
         pendingRecording = recorder.prepareRecording(context, options);
         recording = pendingRecording.start(
                 ContextCompat.getMainExecutor(context),
                 captureListener
         );
+
+
         Log.i("Recording", " " + recording);
 
 
@@ -272,6 +274,7 @@ public class CameraHelper {
     }
 
     private void bindBackCameraVideo() {
+
         provider.unbindAll();
         createPreview();
         recorder = new Recorder.Builder()
@@ -287,6 +290,31 @@ public class CameraHelper {
             Log.i("Bind Video", "Video bounded");
         } catch (Exception e) {
             Log.e("Exception", e.toString());
+        }
+
+    }
+
+    private void bindFrontCameraVideo() {
+        provider.unbindAll();
+        createPreview();
+        recorder = new Recorder.Builder()
+                .setExecutor(ContextCompat.getMainExecutor(context))
+                .setQualitySelector(qualitySelector)
+                .build();
+        videoCapture = VideoCapture.withOutput(recorder);
+        cameraSelector = new CameraSelector
+                .Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build();
+        try {
+            if (provider.hasCamera(cameraSelector)) {
+                camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, videoCapture);
+                cameraInfo = camera.getCameraInfo();
+                cameraControl = camera.getCameraControl();
+            }
+
+        } catch (CameraInfoUnavailableException exp) {
+            Log.i("Binding front camera exception", exp.toString());
+            bindBackCameraVideo();
         }
     }
 
@@ -328,6 +356,14 @@ public class CameraHelper {
             bindBackCamera();
         } else {
             bindFrontCamera();
+        }
+    }
+
+    public void bindCameraVideo(boolean backCamera) {
+        if (backCamera) {
+            bindBackCameraVideo();
+        } else {
+            bindFrontCameraVideo();
         }
     }
 

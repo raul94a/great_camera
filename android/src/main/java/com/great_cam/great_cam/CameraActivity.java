@@ -3,28 +3,23 @@ package com.great_cam.great_cam;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
-import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.SeekBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.CameraState;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ZoomState;
-import androidx.camera.video.FileOutputOptions;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
@@ -33,7 +28,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.great_cam.great_cam.utils.CameraHelper;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
 
-import java.io.File;
 import java.util.Objects;
 
 enum FlashType {
@@ -41,8 +35,9 @@ enum FlashType {
 }
 
 public class CameraActivity extends AppCompatActivity {
-    private ImageView cancelPicture, refreshPicture, validPicture, flash, btnClose, imgPreview, btnPicture;
-    private LinearLayout handler, previewButtons;
+    private TextView optionPicture, optionVideo;
+    private ImageView cancelPicture, refreshPicture, validPicture, flash, btnSwitch, imgPreview, btnPicture;
+    private LinearLayout handler, previewButtons, optionSelector;
     private CameraHelper camera;
     private PreviewView preview;
     private CameraViewModel cameraViewModel;
@@ -50,9 +45,9 @@ public class CameraActivity extends AppCompatActivity {
     // private SeekBar slider;
     private FlashType flashtype = FlashType.OFF;
 
-    private final String CAMERA_BACK_ASSET = "@drawable/ic_camera_back";
-    private final String CAMERA_FRONT_ASSET = "@drawable/ic_camera_front";
-    private final String CAMERA_SWITCH = "@drawable/ic_camera_switch";
+
+    private final String VIDEO_PLAY = "@drawable/ic_video_stop";
+    private final String VIDEO_STOP = "@drawable/ic_video_play";
 
 
     private boolean startTracking = true;
@@ -60,6 +55,7 @@ public class CameraActivity extends AppCompatActivity {
     private float currentZoomProgress;
     private float previousSpan;
     private boolean canFocus;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,13 +78,11 @@ public class CameraActivity extends AppCompatActivity {
     private void observe() {
         cameraViewModel.showPreview.observe(this, show -> {
             if (show) {
-                //             slider.setVisibility(View.GONE);
                 preview.setVisibility(View.GONE);
                 handler.setVisibility(View.GONE);
                 imgPreview.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.VISIBLE);
             } else {
-                //           slider.setVisibility(View.VISIBLE);
                 preview.setVisibility(View.VISIBLE);
                 handler.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.GONE);
@@ -97,12 +91,42 @@ public class CameraActivity extends AppCompatActivity {
 
             }
         });
+
+        cameraViewModel.isVideoActive.observe(this, videoActive -> {
+            if (camera != null) {
+                turnFlashOff();
+            }
+            if (videoActive) {
+                btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_video_play));
+                optionVideo.setTypeface(null, Typeface.BOLD);
+                optionVideo.setTextSize(20.0f);
+                optionPicture.setTextSize(16.0f);
+            } else {
+                btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_btn_camera));
+                optionPicture.setTypeface(null, Typeface.BOLD);
+                optionPicture.setTextSize(20.0f);
+                optionVideo.setTextSize(16.0f);
+            }
+        });
+
+        cameraViewModel.isVideoRunning.observe(this, videoRunning -> {
+            if (videoRunning) {
+                optionSelector.setVisibility(View.GONE);
+                btnSwitch.setVisibility(View.GONE);
+                btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_video_stop));
+            } else {
+                boolean isVideoActive = Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue());
+                optionSelector.setVisibility(View.VISIBLE);
+                btnSwitch.setVisibility(View.VISIBLE);
+                btnPicture.setImageDrawable(ContextCompat.getDrawable(this, isVideoActive ? R.drawable.ic_video_play : R.drawable.ic_btn_camera));
+            }
+        });
     }
 
     private void cameraActionsHandler() {
         onSeekBarChange();
+        onTapOptionController();
         onTapSwitchCamera();
-        // focusImage();
         onTapCloseCamera();
         onTapRefresh();
         onTapValidate();
@@ -123,10 +147,63 @@ public class CameraActivity extends AppCompatActivity {
         enableCamera();
     }
 
+
+    private void onTapOptionController() {
+        onTapPictureOption();
+        onTapVideoOption();
+    }
+
+    private void onTapPictureOption() {
+        optionPicture.setOnClickListener(v -> {
+
+            if (Boolean.FALSE.equals(cameraViewModel.isVideoActive.getValue())) {
+                return;
+            }
+            cameraViewModel.isVideoActive.setValue(false);
+            camera.bindCamera(true);
+        });
+    }
+
+    private void onTapVideoOption() {
+        optionVideo.setOnClickListener(v -> {
+
+
+            if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
+                return;
+            }
+            cameraViewModel.isVideoActive.setValue(true);
+            camera.bindCameraVideo(true);
+        });
+
+    }
+
     private void onTapTakePicture() {
         btnPicture.setOnClickListener(v -> {
 
-           /* camera.capturePhoto(new ImageCapture.OnImageSavedCallback() {
+            if (Boolean.TRUE.equals(cameraViewModel.isVideoRunning.getValue())) {
+                camera.stopVideo();
+                camera.disableTorch();
+                cameraViewModel.isVideoRunning.setValue(false);
+                return;
+            }
+
+            if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
+                Log.e("onTapPlayVideo", "video is active");
+                if (camera.recorder != null) {
+                    Log.e("onTapPlayVideo", "Start capture video");
+
+                    camera.captureVideo();
+                    if (FlashType.AUTO == flashtype) {
+                        camera.enableTorch();
+                    }
+                    cameraViewModel.isVideoRunning.setValue(true);
+                }
+
+
+                return;
+            }
+
+            camera.capturePhoto(new ImageCapture.OnImageSavedCallback() {
                 @Override
                 public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                     Log.i("onImageSaved", "" + outputFileResults.getSavedUri());
@@ -143,12 +220,8 @@ public class CameraActivity extends AppCompatActivity {
                 public void onError(@NonNull ImageCaptureException exception) {
                     Log.e("ImageCaptureException", exception.toString());
                 }
-            }, flashtype == FlashType.AUTO);*/
-            if(camera.recording != null){
-                camera.stopVideo();
-                return;
-            }
-            camera.captureVideo();
+            }, flashtype == FlashType.AUTO);
+
 
         });
     }
@@ -161,7 +234,9 @@ public class CameraActivity extends AppCompatActivity {
     private void changeTorchStatus() {
         if (!hasTorch()) return;
 
+
         flash.setOnClickListener(v -> {
+
             switch (flashtype) {
                 case OFF:
                     int image = getResources().getIdentifier("@drawable/ic_flash_auto", null, getPackageName());
@@ -175,13 +250,18 @@ public class CameraActivity extends AppCompatActivity {
                     camera.enableTorch();
                     break;
                 default:
-                    image = getResources().getIdentifier("@drawable/ic_flash_off", null, getPackageName());
-                    flash.setImageDrawable(ContextCompat.getDrawable(this, image));
-                    flashtype = FlashType.OFF;
-                    camera.disableTorch();
+                    turnFlashOff();
                     break;
             }
         });
+    }
+
+    private void turnFlashOff() {
+        int image;
+        image = getResources().getIdentifier("@drawable/ic_flash_off", null, getPackageName());
+        flash.setImageDrawable(ContextCompat.getDrawable(this, image));
+        flashtype = FlashType.OFF;
+        camera.disableTorch();
     }
 
     private void hideFlash() {
@@ -195,7 +275,7 @@ public class CameraActivity extends AppCompatActivity {
     @SuppressLint("ClickableViewAccessibility")
     private void focusImage(MotionEvent motionEvent) {
         camera.setFocus(motionEvent);
-       // preview.setOnTouchListener((view, motionEvent) -> camera.setFocus(motionEvent));
+        // preview.setOnTouchListener((view, motionEvent) -> camera.setFocus(motionEvent));
     }
 
     private void onTapValidate() {
@@ -248,7 +328,7 @@ public class CameraActivity extends AppCompatActivity {
             if (currentZoomProgress < min) currentZoomProgress = min;
 
 
-            if(previousSpan > getCurrentSpan && getPreviousSpan <= previousSpan){
+            if (previousSpan > getCurrentSpan && getPreviousSpan <= previousSpan) {
                 camera.setZoom(min);
                 return super.onScale(detector);
             }
@@ -282,43 +362,6 @@ public class CameraActivity extends AppCompatActivity {
             gd.onTouchEvent(event);
             return true;
         });
-  /*      slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-
-
-                if (Boolean.TRUE.equals(cameraViewModel.isDrag.getValue())) {
-
-                    camera.setZoom(progress);
-
-                } else {
-                   
-                    if (Math.abs(progress - i) > 1) {
-                        seekBar.setProgress(progress);
-
-                    } else {
-                        cameraViewModel.isDrag.setValue(true);
-                    }
-                }
-
-
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-                Log.i("OnStartTrackingTouch", "...00");
-                progress = seekBar.getProgress();
-                seekBar.setProgress(progress);
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                cameraViewModel.isDrag.setValue(false);
-                Log.i("Is drag on stop", " " + cameraViewModel.isDrag.getValue());
-
-            }
-        });
-*/
 
     }
 
@@ -327,9 +370,14 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void onTapSwitchCamera() {
-        btnClose.setOnClickListener(v -> {
+        btnSwitch.setOnClickListener(v -> {
             boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
-            camera.bindCamera(!backCamera);
+            if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
+                camera.bindCameraVideo(!backCamera);
+            } else {
+                camera.bindCamera(!backCamera);
+
+            }
             cameraViewModel.backCamera.setValue(!backCamera);
         });
     }
@@ -364,14 +412,17 @@ public class CameraActivity extends AppCompatActivity {
         //    slider = getView(R.id.zoomSlider);
         preview = getView(R.id.cameraPreview);
         btnPicture = getView(R.id.buttTakePicture);
-        btnClose = getView(R.id.buttCancelCamera);
+        btnSwitch = getView(R.id.switchCamera);
         imgPreview = getView(R.id.imgPreview);
         handler = getView(R.id.handler);
         previewButtons = getView(R.id.previewButtons);
         cancelPicture = getView(R.id.cancelPicture);
         validPicture = getView(R.id.validPicture);
         refreshPicture = getView(R.id.refreshPicture);
+        optionPicture = getView(R.id.optionPicture);
+        optionVideo = getView(R.id.optionVideo);
         flash = getView(R.id.flash);
+        optionSelector = getView(R.id.optionSelector);
     }
 
     @Override

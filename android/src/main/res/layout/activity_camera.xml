@@ -11,39 +11,52 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/cameraPreview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="419dp"
+        android:layout_height="553dp"
 
         android:layout_above="@id/handler"
+        app:layout_constraintBottom_toTopOf="@+id/handler"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-<!--    <SeekBar-->
-<!--        android:id="@+id/zoomSlider"-->
-<!--        android:layout_width="200dp"-->
-<!--        android:layout_height="match_parent"-->
-<!--        android:layout_margin="0dp"-->
-<!--        android:foregroundGravity="right"-->
 
-<!--        android:progressTint="#F8EDED"-->
-<!--        android:rotation="270"-->
-<!--        android:scaleX="2.5"-->
-<!--        android:scaleY="2.5"-->
-<!--        android:theme="@style/Theme.AppCompat"-->
-<!--        android:translationX="80dp"-->
-<!--        android:valueFrom="1.0"-->
-<!--        android:min="1"-->
-<!--        android:max="10"-->
+    </androidx.camera.view.PreviewView>
 
-<!--        android:valueTo="10.0"-->
-<!--        android:visibility="visible"-->
-<!--        app:layout_constraintBottom_toBottomOf="parent"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintTop_toTopOf="parent"-->
-<!--        app:trackColorActive="@color/white"-->
-<!--        app:trackColorInactive="@color/black" />-->
+    <LinearLayout
+        android:id="@+id/optionSelector"
+        android:layout_width="match_parent"
+        android:layout_height="49dp"
+        android:background="@color/black"
+app:flow_verticalAlign="center"
+        android:gravity="center"
 
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="@id/handler"
+        app:layout_constraintEnd_toEndOf="@id/handler"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@id/handler"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.863">
+
+        <TextView
+            android:id="@+id/optionPicture"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:gravity="center"
+            android:textSize="17sp"
+            android:layout_marginEnd="50dp"
+            android:text="Picture" />
+        <TextView
+            android:id="@+id/optionVideo"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:gravity="center"
+            android:textSize="17sp"
+
+            android:text="Video" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/handler"
@@ -62,7 +75,7 @@
         <ImageView
 
 
-            android:id="@+id/buttCancelCamera"
+            android:id="@+id/switchCamera"
             android:layout_width="63dp"
             android:layout_height="63dp"
             android:layout_marginStart="20dp"
