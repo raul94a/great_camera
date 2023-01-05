@@ -19,7 +19,7 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
 
 
-public class GreatCamPlugin implements FlutterPlugin, ActivityAware, MethodCallHandler, PluginRegistry.ActivityResultListener {
+public class GreatCamPlugin implements FlutterPlugin, PluginRegistry.RequestPermissionsResultListener,ActivityAware,MethodCallHandler, PluginRegistry.ActivityResultListener {
 
     private MethodChannel channel;
     private Activity activity;
@@ -52,6 +52,7 @@ public class GreatCamPlugin implements FlutterPlugin, ActivityAware, MethodCallH
     public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
         activity = binding.getActivity();
         binding.addActivityResultListener(this);
+        binding.addRequestPermissionsResultListener(this);
     }
 
     @Override
@@ -63,6 +64,7 @@ public class GreatCamPlugin implements FlutterPlugin, ActivityAware, MethodCallH
     public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
 
     }
+
 
     @Override
     public void onDetachedFromActivity() {
@@ -119,4 +121,8 @@ public class GreatCamPlugin implements FlutterPlugin, ActivityAware, MethodCallH
     }
 
 
+    @Override
+    public boolean onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        return false;
+    }
 }

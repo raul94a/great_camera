@@ -155,24 +155,23 @@ public class CameraActivity extends AppCompatActivity {
 
     private void onTapPictureOption() {
         optionPicture.setOnClickListener(v -> {
-
+            boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
             if (Boolean.FALSE.equals(cameraViewModel.isVideoActive.getValue())) {
                 return;
             }
             cameraViewModel.isVideoActive.setValue(false);
-            camera.bindCamera(true);
+            camera.bindCamera(backCamera);
         });
     }
 
     private void onTapVideoOption() {
         optionVideo.setOnClickListener(v -> {
-
-
+            boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
             if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
                 return;
             }
             cameraViewModel.isVideoActive.setValue(true);
-            camera.bindCameraVideo(true);
+            camera.bindCameraVideo(backCamera);
         });
 
     }
