@@ -2,29 +2,15 @@ package com.great_cam.great_cam.utils;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CaptureRequest;
-import android.media.ImageReader;
-import android.net.Uri;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.provider.MediaStore;
+import android.media.AudioRecord;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.Surface;
-import android.view.TextureView;
-import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraInfo;
@@ -36,11 +22,9 @@ import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
 import androidx.camera.core.TorchState;
-import androidx.camera.core.internal.CameraUseCaseAdapter;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.video.FallbackStrategy;
 import androidx.camera.video.FileOutputOptions;
-import androidx.camera.video.MediaStoreOutputOptions;
 import androidx.camera.video.PendingRecording;
 import androidx.camera.video.Quality;
 import androidx.camera.video.QualitySelector;
@@ -58,9 +42,7 @@ import androidx.lifecycle.LifecycleOwner;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
@@ -83,8 +65,10 @@ public class CameraHelper {
     public int takePictureDelay = 250;
     public Recorder recorder;
     public VideoCapture<VideoOutput> videoCapture;
+    public AudioRecord audioRecord;
     public PendingRecording pendingRecording;
     public Recording recording;
+    public   FileOutputOptions options;
     private final QualitySelector qualitySelector =
             QualitySelector.fromOrderedList(Arrays.asList(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD),
                     FallbackStrategy.lowerQualityOrHigherThan(Quality.SD));
@@ -128,7 +112,7 @@ public class CameraHelper {
     }
 
     public void disableTorch() {
-        if(cameraControl == null) return;
+        if (cameraControl == null) return;
         cameraControl.enableTorch(false);
     }
 
@@ -235,15 +219,27 @@ public class CameraHelper {
     }
 
     public Consumer<VideoRecordEvent> captureListener = videoRecordEvent -> {
-
+        Log.e("HAS AUDIO", "" + videoRecordEvent.getRecordingStats().getAudioStats().hasAudio());
     };
 
     public void captureVideo() {
 
         String name = context.getCacheDir().getPath() + File.separator + System.currentTimeMillis() + ".mp4";
-        FileOutputOptions options = new FileOutputOptions.Builder(new File(name)).build();
+      options = new FileOutputOptions.Builder(new File(name)).build();
 
-        pendingRecording = recorder.prepareRecording(context, options);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+
+        }
+        pendingRecording = recorder.prepareRecording(context, options).withAudioEnabled();
+
+
         recording = pendingRecording.start(
                 ContextCompat.getMainExecutor(context),
                 captureListener
@@ -255,10 +251,11 @@ public class CameraHelper {
 
     }
 
-    public void stopVideo() {
+    public void stopVideo(VideoFile videoFile) {
         recording.stop();
         pendingRecording = null;
         recording = null;
+        videoFile.getVideo(options);
     }
 
     public void pauseVideo() {
@@ -377,6 +374,9 @@ public class CameraHelper {
 
     }
 
+    public interface VideoFile{
+        void getVideo(FileOutputOptions options);
+    }
 
 }
 

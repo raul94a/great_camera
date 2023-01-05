@@ -1,9 +1,11 @@
 package com.great_cam.great_cam;
 
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -20,8 +22,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ZoomState;
+import androidx.camera.video.FileOutputOptions;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -78,10 +82,15 @@ public class CameraActivity extends AppCompatActivity {
     private void observe() {
         cameraViewModel.showPreview.observe(this, show -> {
             if (show) {
+
+
                 preview.setVisibility(View.GONE);
                 handler.setVisibility(View.GONE);
-                imgPreview.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.VISIBLE);
+                if (Boolean.FALSE.equals(cameraViewModel.isVideoActive.getValue())) {
+                    imgPreview.setVisibility(View.VISIBLE);
+                }
+
             } else {
                 preview.setVisibility(View.VISIBLE);
                 handler.setVisibility(View.VISIBLE);
@@ -180,8 +189,9 @@ public class CameraActivity extends AppCompatActivity {
         btnPicture.setOnClickListener(v -> {
 
             if (Boolean.TRUE.equals(cameraViewModel.isVideoRunning.getValue())) {
-                camera.stopVideo();
+                camera.stopVideo(options -> cameraViewModel.picturePath.setValue(options.getFile().toString()));
                 camera.disableTorch();
+                cameraViewModel.show();
                 cameraViewModel.isVideoRunning.setValue(false);
                 return;
             }
@@ -190,6 +200,7 @@ public class CameraActivity extends AppCompatActivity {
                 Log.e("onTapPlayVideo", "video is active");
                 if (camera.recorder != null) {
                     Log.e("onTapPlayVideo", "Start capture video");
+
 
                     camera.captureVideo();
                     if (FlashType.AUTO == flashtype) {
@@ -426,6 +437,15 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        //TODO: ONLY FOR TESTING
+        if (cameraViewModel.isVideoActive.getValue()) {
+            Intent returnIntent = new Intent();
+            returnIntent.putExtra("path", cameraViewModel.picturePath.getValue());
+            setResult(Activity.RESULT_OK, returnIntent);
+            finish();
+            return;
+
+        }
         Intent returnIntent = new Intent();
         returnIntent.putExtra("path", "");
         setResult(Activity.RESULT_OK, returnIntent);

@@ -1,13 +1,17 @@
 package com.great_cam.great_cam;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
@@ -19,19 +23,20 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
 
 
-public class GreatCamPlugin implements FlutterPlugin, PluginRegistry.RequestPermissionsResultListener,ActivityAware,MethodCallHandler, PluginRegistry.ActivityResultListener {
+public class GreatCamPlugin implements FlutterPlugin, PluginRegistry.RequestPermissionsResultListener, ActivityAware, MethodCallHandler, PluginRegistry.ActivityResultListener {
 
     private MethodChannel channel;
     private Activity activity;
     private MethodChannel.Result pendingResult;
     private String path;
+    private static final String[] RECORD_AUDIO_PERMISSION = new String[]{Manifest.permission.RECORD_AUDIO};
+    private static final int AUDIO_REQUEST_CODE = 10;
+
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
         channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "great_cam");
         channel.setMethodCallHandler(this);
-
-
     }
 
     @Override
@@ -85,9 +90,9 @@ public class GreatCamPlugin implements FlutterPlugin, PluginRegistry.RequestPerm
     public boolean onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 
         Log.i("DATA", " " + data.getData());
-        if(data != null){
+        if (data != null) {
             Uri uri = data.getData();
-            if(uri != null){
+            if (uri != null) {
                 path = uri.getPath();
                 pendingResult.success(path);
                 clearPendingResult();
@@ -95,9 +100,9 @@ public class GreatCamPlugin implements FlutterPlugin, PluginRegistry.RequestPerm
             }
         }
         path = data.getStringExtra("path");
-        if(path == null){
+        if (path == null) {
             path = data.getStringExtra("dat");
-            pendingResult.success(path.isEmpty() ? null : path );
+            pendingResult.success(path.isEmpty() ? null : path);
             clearPendingResult();
             Log.e("Image path", "" + path);
             return true;
@@ -124,5 +129,21 @@ public class GreatCamPlugin implements FlutterPlugin, PluginRegistry.RequestPerm
     @Override
     public boolean onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         return false;
+    }
+
+    public boolean hasRecordAudioPermission() {
+        return ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    public void requestPermission(Activity activity, String[] permission, int requestCode) {
+        ActivityCompat.requestPermissions(
+                activity,
+                permission,
+                requestCode
+        );
+
     }
 }

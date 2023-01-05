@@ -16,6 +16,7 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   permission_handler: ^10.2.0
+  video_player:
   flutter:
     sdk: flutter
 

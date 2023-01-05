@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:great_cam/great_cam.dart';
 import 'package:great_cam/great_cam_method_channel.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:video_player/video_player.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,7 +63,7 @@ class _MyAppState extends State<MyApp> {
         ),
         body: Center(
             child: _platformVersion != null
-                ? Image.file(File(_platformVersion!))
+                ? VideoPlayerScreen(file: _platformVersion!)
                 : IconButton(
                     icon: Icon(Icons.camera),
                     onPressed: () async {
@@ -70,10 +71,67 @@ class _MyAppState extends State<MyApp> {
                         await Permission.camera.request();
                         return;
                       }
+                      if(!await Permission.microphone.isGranted){
+                        await Permission.microphone.request();
+                        return;
+                      }
 
                       initPlatformState();
                     })),
       ),
     );
+  }
+}
+
+
+class VideoPlayerScreen extends StatefulWidget {
+  const VideoPlayerScreen({super.key, required this.file});
+
+  final String file;
+
+  @override
+  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+}
+
+class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+  late VideoPlayerController _controller;
+  late Future<void> _initializeVideoPlayerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Create and store the VideoPlayerController. The VideoPlayerController
+    // offers several different constructors to play videos from assets, files,
+    // or the internet.
+    _controller = VideoPlayerController.file(
+    File(widget.file),
+
+    );
+
+    _initializeVideoPlayerFuture = _controller.initialize();
+    _controller.play();
+  }
+
+  @override
+  void dispose() {
+    // Ensure disposing of the VideoPlayerController to free up resources.
+    _controller.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Complete the code in the next step.
+    return FutureBuilder(
+      future: _initializeVideoPlayerFuture,
+      builder: (ctx,sn){
+
+      if(sn.connectionState == ConnectionState.waiting){
+          return CircularProgressIndicator();
+      }
+      else return VideoPlayer(_controller);
+    });
   }
 }
