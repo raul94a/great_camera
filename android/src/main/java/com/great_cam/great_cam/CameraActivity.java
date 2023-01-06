@@ -9,6 +9,8 @@ import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -33,13 +35,15 @@ import com.great_cam.great_cam.utils.CameraHelper;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
 
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 enum FlashType {
     AUTO, OFF, ON
 }
 
 public class CameraActivity extends AppCompatActivity {
-    private TextView optionPicture, optionVideo;
+    private TextView optionPicture, optionVideo, timer;
     private ImageView cancelPicture, refreshPicture, validPicture, flash, btnSwitch, imgPreview, btnPicture;
     private LinearLayout handler, previewButtons, optionSelector;
     private CameraHelper camera;
@@ -59,6 +63,9 @@ public class CameraActivity extends AppCompatActivity {
     private float currentZoomProgress;
     private float previousSpan;
     private boolean canFocus;
+    private int seconds;
+    private ExecutorService ex;
+    private Looper loop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +91,7 @@ public class CameraActivity extends AppCompatActivity {
             if (show) {
 
 
+                optionSelector.setVisibility(View.GONE);
                 preview.setVisibility(View.GONE);
                 handler.setVisibility(View.GONE);
                 previewButtons.setVisibility(View.VISIBLE);
@@ -92,6 +100,7 @@ public class CameraActivity extends AppCompatActivity {
                 }
 
             } else {
+                optionSelector.setVisibility(View.VISIBLE);
                 preview.setVisibility(View.VISIBLE);
                 handler.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.GONE);
@@ -110,6 +119,7 @@ public class CameraActivity extends AppCompatActivity {
                 optionVideo.setTypeface(null, Typeface.BOLD);
                 optionVideo.setTextSize(20.0f);
                 optionPicture.setTextSize(16.0f);
+
             } else {
                 btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_btn_camera));
                 optionPicture.setTypeface(null, Typeface.BOLD);
@@ -120,10 +130,12 @@ public class CameraActivity extends AppCompatActivity {
 
         cameraViewModel.isVideoRunning.observe(this, videoRunning -> {
             if (videoRunning) {
+                startTimer();
                 optionSelector.setVisibility(View.GONE);
                 btnSwitch.setVisibility(View.GONE);
                 btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_video_stop));
             } else {
+                stopTimer();
                 boolean isVideoActive = Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue());
                 optionSelector.setVisibility(View.VISIBLE);
                 btnSwitch.setVisibility(View.VISIBLE);
@@ -433,6 +445,7 @@ public class CameraActivity extends AppCompatActivity {
         optionVideo = getView(R.id.optionVideo);
         flash = getView(R.id.flash);
         optionSelector = getView(R.id.optionSelector);
+        timer = getView(R.id.timer);
     }
 
     @Override
@@ -450,6 +463,75 @@ public class CameraActivity extends AppCompatActivity {
         returnIntent.putExtra("path", "");
         setResult(Activity.RESULT_OK, returnIntent);
         finish();
+    }
+
+    private void startTimer() {
+        timer.setVisibility(View.VISIBLE);
+        loop = Looper.getMainLooper();
+        Handler handler = new Handler(loop);
+
+        ex = Executors.newSingleThreadExecutor();
+
+        ex.execute(() -> {
+            while (true) {
+
+                if (ex == null) break;
+
+                handler.post(() -> {
+                    ++seconds;
+                    setTimerView();
+
+                });
+
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    break;
+                }
+            }
+        });
+
+    }
+
+    private void stopTimer() {
+
+        if (ex == null) return;
+        timer.setVisibility(View.GONE);
+        ex.shutdown();
+        seconds = 0;
+        ex = null;
+        loop = null;
+        setTimerView();
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void setTimerView() {
+        if (seconds < 60) {
+            timer.setText("00:" + (seconds < 10 ? "0" + seconds : seconds));
+        } else if (seconds < 3600) {
+            int minutes = this.seconds / 60;
+            int seconds = this.seconds % 60;
+            boolean shouldModifyMinutes = minutes < 10;
+            boolean shouldModifySeconds = seconds < 10;
+            String minutesString = shouldModifyMinutes ? "0" + minutes : "" + minutes;
+            String secondsString = shouldModifySeconds ? "0" + seconds : "" + seconds;
+            timer.setText(minutesString + ":" + secondsString);
+        } else {
+            int hours = this.seconds / 3600;
+            int minutes = (this.seconds % 3600) / 60;
+            int seconds = this.seconds - (hours * 3600 + minutes * 60);
+            boolean shouldModifyHours = hours < 10;
+            boolean shouldModifyMinutes = minutes < 10;
+            boolean shouldModifySeconds = seconds < 10;
+            String mHours = shouldModifyHours ? "0" + hours : "" + hours;
+            String mMin = shouldModifyMinutes ? "0" + minutes : "" + minutes;
+            String mSeconds = shouldModifySeconds ? "0" + seconds : "" + seconds;
+            timer.setText(mHours + ":" + mMin + ":" + mSeconds);
+
+
+        }
     }
 
     private <T> T getView(int resource) {
