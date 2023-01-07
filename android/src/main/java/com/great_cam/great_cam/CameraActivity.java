@@ -178,14 +178,14 @@ public class CameraActivity extends AppCompatActivity {
                 startTimer();
                 handler.setBackgroundColor(ContextCompat.getColor(this, R.color.transparent));
                 optionSelector.setVisibility(View.GONE);
-                btnSwitch.setVisibility(View.GONE);
+                // btnSwitch.setVisibility(View.GONE);
                 btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_video_stop));
             } else {
                 stopTimer();
                 handler.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
                 boolean isVideoActive = Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue());
                 optionSelector.setVisibility(View.VISIBLE);
-                btnSwitch.setVisibility(View.VISIBLE);
+                //   btnSwitch.setVisibility(View.VISIBLE);
                 btnPicture.setImageDrawable(ContextCompat.getDrawable(this, isVideoActive ? R.drawable.ic_video_play : R.drawable.ic_btn_camera));
             }
         });
@@ -248,7 +248,25 @@ public class CameraActivity extends AppCompatActivity {
         btnPicture.setOnClickListener(v -> {
 
             if (Boolean.TRUE.equals(cameraViewModel.isVideoRunning.getValue())) {
-                camera.stopVideo(options -> cameraViewModel.picturePath.setValue(options.getFile().toString()));
+                camera.stopVideo(options -> {
+    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+                    Log.i("OPTIONS?", " " + options);
+
+
+
+
+
+
+
+
+                    cameraViewModel.picturePath.setValue(options);
+                });
                 camera.disableTorch();
                 cameraViewModel.show();
                 cameraViewModel.isVideoRunning.setValue(false);
@@ -443,6 +461,10 @@ public class CameraActivity extends AppCompatActivity {
             boolean backCamera = Boolean.TRUE.equals(cameraViewModel.backCamera.getValue());
             if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
                 camera.bindCameraVideo(!backCamera);
+                if (Boolean.TRUE.equals(cameraViewModel.isVideoRunning.getValue())) {
+                    sleep(75);
+                    camera.captureVideo();
+                }
             } else {
                 camera.bindCamera(!backCamera);
 
@@ -463,9 +485,8 @@ public class CameraActivity extends AppCompatActivity {
 
     private void refresh() {
         if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
+            try{
 
-
-            mc.releasePointerCapture();
             videoPreview.releasePointerCapture();
             videoPreview.stopPlayback();
             videoPreview.suspend();
@@ -475,14 +496,15 @@ public class CameraActivity extends AppCompatActivity {
 
             mc.hide();
             cameraViewModel.isVideoRunning.setValue(false);
+            }catch (Exception ignore){}
 
         }
         boolean imageRemoved = cameraViewModel.removeImage();
         Log.i("onRefreshCamera", "Image removed: " + imageRemoved);
-        try{
+        try {
             Thread.sleep(50);
+        } catch (Exception ignore) {
         }
-        catch (Exception ignore){}
         cameraViewModel.hide();
     }
 
@@ -633,5 +655,12 @@ public class CameraActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         Log.i("onStop", cameraViewModel.toString());
+    }
+
+    private void sleep(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (Exception ignore) {
+        }
     }
 }

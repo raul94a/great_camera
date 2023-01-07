@@ -4,7 +4,9 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.media.AudioRecord;
+
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -41,10 +43,31 @@ import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+
+import org.mp4parser.BasicContainer;
+import org.mp4parser.muxer.Movie;
+import org.mp4parser.muxer.Track;
+import org.mp4parser.muxer.builder.DefaultMp4Builder;
+import org.mp4parser.muxer.container.mp4.MovieCreator;
+import org.mp4parser.muxer.tracks.AppendTrack;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CameraHelper {
     private static final String[] CAMERA_PERMISSION = new String[]{Manifest.permission.CAMERA};
@@ -65,7 +88,6 @@ public class CameraHelper {
     public int takePictureDelay = 250;
     public Recorder recorder;
     public VideoCapture<VideoOutput> videoCapture;
-    public AudioRecord audioRecord;
     public PendingRecording pendingRecording;
     public Recording recording;
     public FileOutputOptions options;
@@ -73,6 +95,9 @@ public class CameraHelper {
             QualitySelector.fromOrderedList(Arrays.asList(/*Quality.UHD, */Quality.FHD, Quality.HD, Quality.SD),
                     FallbackStrategy.lowerQualityOrHigherThan(Quality.SD));
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
+    private List<String> recordingPaths = new ArrayList<>();
+
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -227,6 +252,7 @@ public class CameraHelper {
 
         options = new FileOutputOptions.Builder(new File(context.getFilesDir(), System.currentTimeMillis() + ".mp4")).build();
 
+
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
         }
         pendingRecording = recorder.prepareRecording(context, options).withAudioEnabled();
@@ -242,13 +268,95 @@ public class CameraHelper {
 
     public void stopVideo(VideoFile videoFile) {
 
+        stopVideo();
+
+        try {
+            Thread.sleep(200);
+        } catch (Exception ignore) {
+        }
+        if (recordingPaths.size() > 1) {
+            Looper looper = Looper.getMainLooper();
+            ExecutorService ex = Executors.newSingleThreadExecutor();
+            Handler handler = new Handler(looper);
+            String path = context.getFilesDir() + "/" + System.currentTimeMillis() + ".mp4";
+
+            ex.execute(() -> {
+
+                joinVideos(path);
+                handler.post(() -> {
+                    videoFile.getVideo(path);
+                    recordingPaths.clear();
+                });
+            });
+        } else {
+            videoFile.getVideo(options.getFile().getAbsolutePath());
+        }
+
+
+    }
+
+    private void joinVideos(String path) {
+        try {
+            int length = recordingPaths.size();
+            Movie[] inMovies = new Movie[length];
+
+            for (int i = 0; i < length; i++) {
+                inMovies[i] = MovieCreator.build(recordingPaths.get(i));
+            }
+
+
+            List<Track> videoTracks = new LinkedList<>();
+            List<Track> audioTracks = new LinkedList<>();
+
+            for (Movie m : inMovies) {
+                for (Track t : m.getTracks()) {
+                    if (t.getHandler().equals("soun")) {
+                        audioTracks.add(t);
+                    }
+                    if (t.getHandler().equals("vide")) {
+                        videoTracks.add(t);
+                    }
+                }
+            }
+
+            Movie result = new Movie();
+
+            if (audioTracks.size() > 0) {
+                result.addTrack(new AppendTrack(audioTracks
+                        .toArray(new Track[audioTracks.size()])));
+            }
+            if (videoTracks.size() > 0) {
+                result.addTrack(new AppendTrack(videoTracks
+                        .toArray(new Track[videoTracks.size()])));
+            }
+
+            BasicContainer out = (BasicContainer) new DefaultMp4Builder().build(result);
+
+            @SuppressWarnings("resource")
+            FileChannel fc = new RandomAccessFile(path, "rw").getChannel();
+            out.writeContainer(fc);
+            fc.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void stopVideo() {
         recording.stop();
         recording.close();
-        recorder = null;
+
         recording = null;
         pendingRecording = null;
-        options.getFile().setExecutable(true, false);
-        videoFile.getVideo(options);
+        File f = options.getFile();
+        String path = f.getAbsolutePath();
+        f.setReadable(true, false);
+        f.setExecutable(true, false);
+        f.setWritable(true, false);
+        recordingPaths.add(path);
+        Log.i("Adding the path to recording", path);
     }
 
     public void pauseVideo() {
@@ -264,13 +372,18 @@ public class CameraHelper {
     }
 
     private void bindBackCameraVideo() {
-
+        if (recorder != null) {
+            stopVideo();
+        }
         provider.unbindAll();
+
+
         recorder = new Recorder.Builder()
                 .setExecutor(ContextCompat.getMainExecutor(context))
                 .setQualitySelector(qualitySelector)
                 .build();
         videoCapture = VideoCapture.withOutput(recorder);
+
         cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
@@ -283,13 +396,18 @@ public class CameraHelper {
     }
 
     private void bindFrontCameraVideo() {
+        if (recorder != null) {
+            stopVideo();
+        }
         provider.unbindAll();
+
         recorder = new Recorder.Builder()
                 .setExecutor(ContextCompat.getMainExecutor(context))
 
                 .setQualitySelector(qualitySelector)
                 .build();
         videoCapture = VideoCapture.withOutput(recorder);
+
         cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build();
@@ -299,6 +417,7 @@ public class CameraHelper {
 
                 cameraInfo = camera.getCameraInfo();
                 cameraControl = camera.getCameraControl();
+
             }
 
         } catch (CameraInfoUnavailableException exp) {
@@ -308,6 +427,9 @@ public class CameraHelper {
     }
 
     private void bindBackCamera() {
+        //need to check if the call is made in recording mode
+        //this means that the camera is change between front/back
+
         provider.unbindAll();
         cameraSelector = new CameraSelector
                 .Builder()
@@ -320,6 +442,7 @@ public class CameraHelper {
     }
 
     private void bindFrontCamera() {
+
         provider.unbindAll();
         cameraSelector = new CameraSelector
                 .Builder()
@@ -364,7 +487,7 @@ public class CameraHelper {
     }
 
     public interface VideoFile {
-        void getVideo(FileOutputOptions options);
+        void getVideo(String path);
     }
 
 }
