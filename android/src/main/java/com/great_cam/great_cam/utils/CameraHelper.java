@@ -246,9 +246,9 @@ public class CameraHelper {
 
         recording.stop();
         recording.close();;
-        pendingRecording = null;
-        recording = null;
-        recorder = null;
+        //pendingRecording = null;
+        //recording = null;
+       // recorder = null;
         options.getFile().setExecutable(true, false);
 
         videoFile.getVideo(options);

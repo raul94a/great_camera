@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-android:backgroundTint="@color/transparent"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cameraLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
+    android:backgroundTint="@color/transparent"
     android:visibility="visible">
 
     <androidx.camera.view.PreviewView
@@ -28,13 +28,15 @@ android:backgroundTint="@color/transparent"
         android:layout_width="match_parent"
         android:layout_height="49dp"
         android:background="@color/black"
-app:flow_verticalAlign="center"
         android:gravity="center"
-
         android:orientation="horizontal"
+
+        app:flow_verticalAlign="center"
         app:layout_constraintBottom_toBottomOf="@id/handler"
         app:layout_constraintEnd_toEndOf="@id/handler"
+
         app:layout_constraintHorizontal_bias="0.0"
+
         app:layout_constraintStart_toStartOf="@id/handler"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.863">
@@ -43,18 +45,19 @@ app:flow_verticalAlign="center"
             android:id="@+id/optionPicture"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
-            android:gravity="center"
-            android:textSize="17sp"
             android:layout_marginEnd="50dp"
-            android:text="Picture" />
+            android:gravity="center"
+            android:text="Picture"
+            android:textSize="17sp" />
+
         <TextView
             android:id="@+id/optionVideo"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:gravity="center"
-            android:textSize="17sp"
+            android:text="Video"
 
-            android:text="Video" />
+            android:textSize="17sp" />
 
     </LinearLayout>
 
@@ -73,13 +76,11 @@ app:flow_verticalAlign="center"
     <LinearLayout
         android:id="@+id/handler"
         android:layout_width="match_parent"
-        android:orientation="horizontal"
-        android:background="@color/black"
-        android:translationZ="8888dp"
         android:layout_height="93dp"
-
+        android:background="@color/black"
         android:gravity="center"
-
+        android:orientation="horizontal"
+        android:translationZ="8888dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -90,18 +91,18 @@ app:flow_verticalAlign="center"
             android:id="@+id/switchCamera"
             android:layout_width="63dp"
             android:layout_height="63dp"
-            android:layout_marginStart="20dp"
             android:layout_gravity="center"
-
             android:layout_marginHorizontal="20dp"
+
+            android:layout_marginStart="20dp"
             android:src="@drawable/ic_camera_switch" />
 
         <ImageView
             android:id="@+id/buttTakePicture"
             android:layout_width="63dp"
             android:layout_height="63dp"
-            android:layout_marginHorizontal="20dp"
             android:layout_gravity="center"
+            android:layout_marginHorizontal="20dp"
             android:src="@drawable/ic_btn_camera" />
 
         <ImageView
@@ -109,8 +110,8 @@ app:flow_verticalAlign="center"
             android:id="@+id/flash"
             android:layout_width="63dp"
             android:layout_height="63dp"
-            android:layout_marginHorizontal="20dp"
             android:layout_gravity="center"
+            android:layout_marginHorizontal="20dp"
             android:src="@drawable/ic_flash_off" />
 
     </LinearLayout>
@@ -118,17 +119,17 @@ app:flow_verticalAlign="center"
 
     <LinearLayout
         android:id="@+id/previewButtons"
-        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="93dp"
         android:layout_alignParentBottom="true"
+        android:gravity="center"
+        android:translationZ="3200dp"
+        android:orientation="horizontal"
 
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:translationZ="55dp"
 
         tools:layout_editor_absoluteX="16dp">
 
@@ -169,10 +170,23 @@ app:flow_verticalAlign="center"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/handler"
+        android:translationZ="3000dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/btnStartVideoPreview"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:src="@drawable/ic_play_video_preview_light"
+        android:translationZ="4000dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.37" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -46,7 +46,7 @@ enum FlashType {
 public class CameraActivity extends AppCompatActivity {
     private VideoView videoPreview;
     private TextView optionPicture, optionVideo, timer;
-    private ImageView cancelPicture, refreshPicture, validPicture, flash, btnSwitch, imgPreview, btnPicture;
+    private ImageView cancelPicture, refreshPicture, validPicture, flash, btnSwitch, imgPreview, btnPicture, btnStartVideoPreview;
     private LinearLayout handler, previewButtons, optionSelector;
     private CameraHelper camera;
     private PreviewView preview;
@@ -54,20 +54,13 @@ public class CameraActivity extends AppCompatActivity {
     private ConstraintLayout root;
     // private SeekBar slider;
     private FlashType flashtype = FlashType.OFF;
-
-
-    private final String VIDEO_PLAY = "@drawable/ic_video_stop";
-    private final String VIDEO_STOP = "@drawable/ic_video_play";
-
-
-    private boolean startTracking = true;
-    private int progress;
-    private float currentZoomProgress;
+    private MediaController mc;
     private float previousSpan;
     private boolean canFocus;
     private int seconds;
     private ExecutorService ex;
     private Looper loop;
+    private MediaPlayer mp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,35 +102,40 @@ public class CameraActivity extends AppCompatActivity {
                         File file = new File(path);
 
 
-                        file.setReadable(true, false);
-
-
                         Uri uri = Uri.fromFile(file);
                         Log.i("URI", "" + uri);
-                        MediaController mc = new MediaController(this);
+
+                        if (file.exists()) {
 
 
-                        videoPreview.setVisibility(View.VISIBLE);
+                            file.setReadable(true, false);
+                            mc = new MediaController(this);
+                            btnStartVideoPreview.setVisibility(View.VISIBLE);
+                            videoPreview.setVisibility(View.VISIBLE);
 
 
-                        videoPreview.setOnClickListener(a -> {
-                            videoPreview.setVideoPath(file.getAbsolutePath());
-                            mc.setMediaPlayer(videoPreview);
-                            mc.setAnchorView(videoPreview);
-                            mc.show();
-                            videoPreview.start();
+                            btnStartVideoPreview.setOnClickListener(a -> {
+                                videoPreview.setVideoPath(file.getAbsolutePath());
+                                mc.setMediaPlayer(videoPreview);
+                                videoPreview.releasePointerCapture();
 
 
-                        });
-                        videoPreview.setOnErrorListener((error, a, cb) -> {
-                            Log.i("Error", "" + error.toString());
-                            Log.i("Error", "" + a + " " + cb);
-                            return false;
-                        });
-                        videoPreview.setOnCompletionListener(MediaPlayer::stop);
+                                mc.show();
+                                videoPreview.start();
+                                btnStartVideoPreview.setVisibility(View.GONE);
+
+
+                            });
+                            videoPreview.setOnErrorListener((error, a, cb) -> {
+                                Log.i("Error", "" + error.toString());
+                                Log.i("Error", "" + a + " " + cb);
+                                return false;
+                            });
+                            videoPreview.setOnCompletionListener(MediaPlayer::stop);
+
+                        }
 
                     }
-
                 }
 
             } else {
@@ -147,10 +145,12 @@ public class CameraActivity extends AppCompatActivity {
                 previewButtons.setVisibility(View.GONE);
                 imgPreview.setVisibility(View.GONE);
                 videoPreview.setVisibility(View.GONE);
-                videoPreview.stopPlayback();
                 videoPreview.setMediaController(null);
-
                 imgPreview.setImageBitmap(null);
+                btnStartVideoPreview.setVisibility(View.GONE);
+                if (btnStartVideoPreview.hasOnClickListeners()) {
+                    btnStartVideoPreview.setOnClickListener(null);
+                }
 
             }
         });
@@ -183,7 +183,6 @@ public class CameraActivity extends AppCompatActivity {
             } else {
                 stopTimer();
                 handler.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
-
                 boolean isVideoActive = Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue());
                 optionSelector.setVisibility(View.VISIBLE);
                 btnSwitch.setVisibility(View.VISIBLE);
@@ -393,7 +392,7 @@ public class CameraActivity extends AppCompatActivity {
             ZoomState zoomState = camera.cameraInfo.getZoomState().getValue();
             float max = zoomState.getMaxZoomRatio();
             float min = zoomState.getMinZoomRatio();
-            currentZoomProgress = detector.getScaleFactor() * 2;
+            float currentZoomProgress = detector.getScaleFactor() * 2;
             if (currentZoomProgress > max) currentZoomProgress = max;
             if (currentZoomProgress < min) currentZoomProgress = min;
 
@@ -464,11 +463,26 @@ public class CameraActivity extends AppCompatActivity {
 
     private void refresh() {
         if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
-            cameraViewModel.isVideoActive.setValue(false);
-                        videoPreview.stopPlayback();
+
+
+            mc.releasePointerCapture();
+            videoPreview.releasePointerCapture();
+            videoPreview.stopPlayback();
+            videoPreview.suspend();
+            videoPreview.clearAnimation();
+            mc.clearAnimation();
+            videoPreview.setVideoURI(null);
+
+            mc.hide();
+            cameraViewModel.isVideoRunning.setValue(false);
+
         }
         boolean imageRemoved = cameraViewModel.removeImage();
         Log.i("onRefreshCamera", "Image removed: " + imageRemoved);
+        try{
+            Thread.sleep(50);
+        }
+        catch (Exception ignore){}
         cameraViewModel.hide();
     }
 
@@ -498,6 +512,7 @@ public class CameraActivity extends AppCompatActivity {
         flash = getView(R.id.flash);
         optionSelector = getView(R.id.optionSelector);
         timer = getView(R.id.timer);
+        btnStartVideoPreview = getView(R.id.btnStartVideoPreview);
 
 
     }
@@ -592,4 +607,31 @@ public class CameraActivity extends AppCompatActivity {
         return (T) this.findViewById(resource);
     }
 
+
+    ///LifeCycle
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i("onDestroy", cameraViewModel.toString());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i("onResume", cameraViewModel.toString());
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i("onPause", cameraViewModel.toString());
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.i("onStop", cameraViewModel.toString());
+    }
 }

@@ -1,16 +1,10 @@
 package com.great_cam.great_cam.viewmodels;
 
 
-import static androidx.lifecycle.SavedStateHandleSupport.createSavedStateHandle;
-import static androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY;
-
-import android.util.Log;
-
+import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.viewmodel.ViewModelInitializer;
-
 import java.io.File;
 import java.util.Objects;
 
@@ -19,10 +13,10 @@ public class CameraViewModel extends ViewModel {
 
     public MutableLiveData<Boolean> showPreview = new MutableLiveData<>(false);
     public MutableLiveData<String> picturePath = new MutableLiveData<>("");
-
     public MutableLiveData<Boolean> backCamera = new MutableLiveData<>(true);
-    public MutableLiveData<Boolean> isVideoActive  = new MutableLiveData<>(false);
+    public MutableLiveData<Boolean> isVideoActive = new MutableLiveData<>(false);
     public MutableLiveData<Boolean> isVideoRunning = new MutableLiveData<>(false);
+
     public CameraViewModel() {
     }
 
@@ -40,7 +34,6 @@ public class CameraViewModel extends ViewModel {
     }
 
 
-
     public boolean removeImage() {
         String path = Objects.requireNonNull(picturePath.getValue());
         if (path.isEmpty()) {
@@ -52,10 +45,29 @@ public class CameraViewModel extends ViewModel {
             return false;
         }
 
+        picturePath.setValue(null);
         return file.delete();
 
     }
 
+    @NonNull
+    @Override
+    public String toString() {
+        String showPreviewStatus = "Show preview: " + showPreview.getValue();
+        String backCameraStatus = "Back camera: " + backCamera.getValue();
+        String videoActiveStatus = "Video Active: " + isVideoActive.getValue();
+        String videoRunningStatus = "Video Running: " + isVideoRunning.getValue();
+        String picturePath = "Picture path: " + this.picturePath.getValue();
+        String line = "\n";
 
+        return showPreviewStatus + line + backCameraStatus + line + videoActiveStatus + line + videoRunningStatus + line + picturePath;
+    }
+
+/*
+*    public MutableLiveData<String> picturePath = new MutableLiveData<>("");
+    public MutableLiveData<Boolean> backCamera = new MutableLiveData<>(true);
+    public MutableLiveData<Boolean> isVideoActive  = new MutableLiveData<>(false);
+    public MutableLiveData<Boolean> isVideoRunning = new MutableLiveData<>(false);
+* */
 
 }
