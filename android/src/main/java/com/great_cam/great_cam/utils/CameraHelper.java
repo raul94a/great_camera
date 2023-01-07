@@ -180,7 +180,8 @@ public class CameraHelper {
 
     public void startCameraX() {
 
-
+        createPreview();
+        createImageCapture();
         bindBackCamera();
 
 
@@ -224,7 +225,6 @@ public class CameraHelper {
 
     public void captureVideo() {
 
-//        String name = context.getCacheDir().getPath() + File.separator + System.currentTimeMillis() + ".mp4";
         options = new FileOutputOptions.Builder(new File(context.getFilesDir(), System.currentTimeMillis() + ".mp4")).build();
 
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -238,19 +238,16 @@ public class CameraHelper {
         );
 
 
-
-
     }
 
     public void stopVideo(VideoFile videoFile) {
 
         recording.stop();
-        recording.close();;
-        //pendingRecording = null;
-        //recording = null;
-       // recorder = null;
+        recording.close();
+        recorder = null;
+        recording = null;
+        pendingRecording = null;
         options.getFile().setExecutable(true, false);
-
         videoFile.getVideo(options);
     }
 
@@ -269,7 +266,6 @@ public class CameraHelper {
     private void bindBackCameraVideo() {
 
         provider.unbindAll();
-        createPreview();
         recorder = new Recorder.Builder()
                 .setExecutor(ContextCompat.getMainExecutor(context))
                 .setQualitySelector(qualitySelector)
@@ -288,7 +284,6 @@ public class CameraHelper {
 
     private void bindFrontCameraVideo() {
         provider.unbindAll();
-        createPreview();
         recorder = new Recorder.Builder()
                 .setExecutor(ContextCompat.getMainExecutor(context))
 
@@ -314,8 +309,6 @@ public class CameraHelper {
 
     private void bindBackCamera() {
         provider.unbindAll();
-        createPreview();
-        createImageCapture();
         cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
@@ -328,8 +321,6 @@ public class CameraHelper {
 
     private void bindFrontCamera() {
         provider.unbindAll();
-        createPreview();
-        createImageCapture();
         cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build();
