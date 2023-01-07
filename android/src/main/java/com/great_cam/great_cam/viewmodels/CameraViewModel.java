@@ -20,7 +20,6 @@ public class CameraViewModel extends ViewModel {
     public MutableLiveData<Boolean> showPreview = new MutableLiveData<>(false);
     public MutableLiveData<String> picturePath = new MutableLiveData<>("");
 
-    public MutableLiveData<Boolean> isUpdatingZoom = new MutableLiveData<>(false);
     public MutableLiveData<Boolean> backCamera = new MutableLiveData<>(true);
     public MutableLiveData<Boolean> isVideoActive  = new MutableLiveData<>(false);
     public MutableLiveData<Boolean> isVideoRunning = new MutableLiveData<>(false);

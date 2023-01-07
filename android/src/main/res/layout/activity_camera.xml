@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
+android:backgroundTint="@color/transparent"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cameraLayout"
     android:layout_width="match_parent"
@@ -11,8 +11,8 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/cameraPreview"
-        android:layout_width="419dp"
-        android:layout_height="553dp"
+        android:layout_width="420dp"
+        android:layout_height="match_parent"
 
         android:layout_above="@id/handler"
         app:layout_constraintBottom_toTopOf="@+id/handler"
@@ -75,7 +75,7 @@ app:flow_verticalAlign="center"
         android:layout_width="match_parent"
         android:orientation="horizontal"
         android:background="@color/black"
-
+        android:translationZ="8888dp"
         android:layout_height="93dp"
 
         android:gravity="center"
@@ -105,6 +105,7 @@ app:flow_verticalAlign="center"
             android:src="@drawable/ic_btn_camera" />
 
         <ImageView
+
             android:id="@+id/flash"
             android:layout_width="63dp"
             android:layout_height="63dp"
@@ -162,5 +163,16 @@ app:flow_verticalAlign="center"
         android:layout_above="@id/handler"
         android:layout_marginBottom="20dp"
         android:visibility="gone" />
+
+    <VideoView
+        android:id="@+id/videoPreview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/handler"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

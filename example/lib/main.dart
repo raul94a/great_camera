@@ -67,6 +67,8 @@ class _MyAppState extends State<MyApp> {
                 : IconButton(
                     icon: Icon(Icons.camera),
                     onPressed: () async {
+                    
+                      bool shouldBlock = false;
                       if (!await Permission.camera.isGranted) {
                         await Permission.camera.request();
                         return;
@@ -75,6 +77,15 @@ class _MyAppState extends State<MyApp> {
                         await Permission.microphone.request();
                         return;
                       }
+                      if(!await Permission.storage.isGranted){
+                        await Permission.storage.request();
+                        return;
+                      }
+                      if(!await Permission.manageExternalStorage.isGranted){
+                      await Permission.manageExternalStorage.request();
+                        return;
+                      }
+                    
 
                       initPlatformState();
                     })),

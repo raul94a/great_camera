@@ -1,13 +1,13 @@
 package com.great_cam.great_cam;
 
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,23 +17,24 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.MediaController;
 import android.widget.TextView;
+import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ZoomState;
-import androidx.camera.video.FileOutputOptions;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.great_cam.great_cam.utils.CameraHelper;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
 
+import java.io.File;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +44,7 @@ enum FlashType {
 }
 
 public class CameraActivity extends AppCompatActivity {
+    private VideoView videoPreview;
     private TextView optionPicture, optionVideo, timer;
     private ImageView cancelPicture, refreshPicture, validPicture, flash, btnSwitch, imgPreview, btnPicture;
     private LinearLayout handler, previewButtons, optionSelector;
@@ -93,10 +95,49 @@ public class CameraActivity extends AppCompatActivity {
 
                 optionSelector.setVisibility(View.GONE);
                 preview.setVisibility(View.GONE);
+
                 handler.setVisibility(View.GONE);
                 previewButtons.setVisibility(View.VISIBLE);
                 if (Boolean.FALSE.equals(cameraViewModel.isVideoActive.getValue())) {
                     imgPreview.setVisibility(View.VISIBLE);
+                } else {
+
+                    if (cameraViewModel.picturePath.getValue() != null && !cameraViewModel.picturePath.getValue().isEmpty()) {
+
+                        Log.i("Cache dir", cameraViewModel.picturePath.getValue());
+                        String path = cameraViewModel.picturePath.getValue();
+                        File file = new File(path);
+
+
+                        file.setReadable(true, false);
+
+
+                        Uri uri = Uri.fromFile(file);
+                        Log.i("URI", "" + uri);
+                        MediaController mc = new MediaController(this);
+
+
+                        videoPreview.setVisibility(View.VISIBLE);
+
+
+                        videoPreview.setOnClickListener(a -> {
+                            videoPreview.setVideoPath(file.getAbsolutePath());
+                            mc.setMediaPlayer(videoPreview);
+                            mc.setAnchorView(videoPreview);
+                            mc.show();
+                            videoPreview.start();
+
+
+                        });
+                        videoPreview.setOnErrorListener((error, a, cb) -> {
+                            Log.i("Error", "" + error.toString());
+                            Log.i("Error", "" + a + " " + cb);
+                            return false;
+                        });
+                        videoPreview.setOnCompletionListener(MediaPlayer::stop);
+
+                    }
+
                 }
 
             } else {
@@ -105,6 +146,10 @@ public class CameraActivity extends AppCompatActivity {
                 handler.setVisibility(View.VISIBLE);
                 previewButtons.setVisibility(View.GONE);
                 imgPreview.setVisibility(View.GONE);
+                videoPreview.setVisibility(View.GONE);
+                videoPreview.stopPlayback();
+                videoPreview.setMediaController(null);
+
                 imgPreview.setImageBitmap(null);
 
             }
@@ -131,11 +176,14 @@ public class CameraActivity extends AppCompatActivity {
         cameraViewModel.isVideoRunning.observe(this, videoRunning -> {
             if (videoRunning) {
                 startTimer();
+                handler.setBackgroundColor(ContextCompat.getColor(this, R.color.transparent));
                 optionSelector.setVisibility(View.GONE);
                 btnSwitch.setVisibility(View.GONE);
                 btnPicture.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_video_stop));
             } else {
                 stopTimer();
+                handler.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+
                 boolean isVideoActive = Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue());
                 optionSelector.setVisibility(View.VISIBLE);
                 btnSwitch.setVisibility(View.VISIBLE);
@@ -415,6 +463,10 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void refresh() {
+        if (Boolean.TRUE.equals(cameraViewModel.isVideoActive.getValue())) {
+            cameraViewModel.isVideoActive.setValue(false);
+                        videoPreview.stopPlayback();
+        }
         boolean imageRemoved = cameraViewModel.removeImage();
         Log.i("onRefreshCamera", "Image removed: " + imageRemoved);
         cameraViewModel.hide();
@@ -431,11 +483,11 @@ public class CameraActivity extends AppCompatActivity {
     private void setLayout() {
 
         root = getView(R.id.cameraLayout);
-        //    slider = getView(R.id.zoomSlider);
         preview = getView(R.id.cameraPreview);
         btnPicture = getView(R.id.buttTakePicture);
         btnSwitch = getView(R.id.switchCamera);
         imgPreview = getView(R.id.imgPreview);
+        videoPreview = getView(R.id.videoPreview);
         handler = getView(R.id.handler);
         previewButtons = getView(R.id.previewButtons);
         cancelPicture = getView(R.id.cancelPicture);
@@ -446,6 +498,8 @@ public class CameraActivity extends AppCompatActivity {
         flash = getView(R.id.flash);
         optionSelector = getView(R.id.optionSelector);
         timer = getView(R.id.timer);
+
+
     }
 
     @Override

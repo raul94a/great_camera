@@ -68,9 +68,9 @@ public class CameraHelper {
     public AudioRecord audioRecord;
     public PendingRecording pendingRecording;
     public Recording recording;
-    public   FileOutputOptions options;
+    public FileOutputOptions options;
     private final QualitySelector qualitySelector =
-            QualitySelector.fromOrderedList(Arrays.asList(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD),
+            QualitySelector.fromOrderedList(Arrays.asList(/*Quality.UHD, */Quality.FHD, Quality.HD, Quality.SD),
                     FallbackStrategy.lowerQualityOrHigherThan(Quality.SD));
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
@@ -219,23 +219,15 @@ public class CameraHelper {
     }
 
     public Consumer<VideoRecordEvent> captureListener = videoRecordEvent -> {
-        Log.e("HAS AUDIO", "" + videoRecordEvent.getRecordingStats().getAudioStats().hasAudio());
+
     };
 
     public void captureVideo() {
 
-        String name = context.getCacheDir().getPath() + File.separator + System.currentTimeMillis() + ".mp4";
-      options = new FileOutputOptions.Builder(new File(name)).build();
+//        String name = context.getCacheDir().getPath() + File.separator + System.currentTimeMillis() + ".mp4";
+        options = new FileOutputOptions.Builder(new File(context.getFilesDir(), System.currentTimeMillis() + ".mp4")).build();
 
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-
         }
         pendingRecording = recorder.prepareRecording(context, options).withAudioEnabled();
 
@@ -246,15 +238,19 @@ public class CameraHelper {
         );
 
 
-        Log.i("Recording", " " + recording);
 
 
     }
 
     public void stopVideo(VideoFile videoFile) {
+
         recording.stop();
+        recording.close();;
         pendingRecording = null;
         recording = null;
+        recorder = null;
+        options.getFile().setExecutable(true, false);
+
         videoFile.getVideo(options);
     }
 
@@ -284,7 +280,6 @@ public class CameraHelper {
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
         try {
             camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, videoCapture);
-            Log.i("Bind Video", "Video bounded");
         } catch (Exception e) {
             Log.e("Exception", e.toString());
         }
@@ -296,6 +291,7 @@ public class CameraHelper {
         createPreview();
         recorder = new Recorder.Builder()
                 .setExecutor(ContextCompat.getMainExecutor(context))
+
                 .setQualitySelector(qualitySelector)
                 .build();
         videoCapture = VideoCapture.withOutput(recorder);
@@ -305,6 +301,7 @@ public class CameraHelper {
         try {
             if (provider.hasCamera(cameraSelector)) {
                 camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, videoCapture);
+
                 cameraInfo = camera.getCameraInfo();
                 cameraControl = camera.getCameraControl();
             }
@@ -325,6 +322,7 @@ public class CameraHelper {
 
         camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
         cameraInfo = camera.getCameraInfo();
+
         cameraControl = camera.getCameraControl();
     }
 
@@ -374,7 +372,7 @@ public class CameraHelper {
 
     }
 
-    public interface VideoFile{
+    public interface VideoFile {
         void getVideo(FileOutputOptions options);
     }
 
