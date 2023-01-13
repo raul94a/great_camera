@@ -9,19 +9,38 @@
     android:backgroundTint="@color/transparent"
     android:visibility="visible">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/cameraPreview"
-        android:layout_width="420dp"
-        android:layout_height="match_parent"
-
-        android:layout_above="@id/handler"
-        app:layout_constraintBottom_toTopOf="@+id/handler"
+    <FrameLayout
+        app:layout_constraintBottom_toTopOf="@id/handler"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
 
-    </androidx.camera.view.PreviewView>
+        <androidx.camera.view.PreviewView
+            android:id="@+id/cameraPreview"
+            android:layout_width="420dp"
+            android:layout_height="match_parent"
+
+            app:layout_constraintBottom_toTopOf="@+id/handler"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+
+        </androidx.camera.view.PreviewView>
+
+        <com.great_cam.great_cam.utils.GraphicOverlay
+            android:id="@+id/overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toTopOf="@+id/handler"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/optionSelector"
@@ -123,8 +142,8 @@
         android:layout_height="93dp"
         android:layout_alignParentBottom="true"
         android:gravity="center"
-        android:translationZ="3200dp"
         android:orientation="horizontal"
+        android:translationZ="3200dp"
 
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"

@@ -76,6 +76,13 @@ dependencies{
     implementation 'org.mp4parser:isoparser:1.9.41'
     implementation 'org.mp4parser:muxer:1.9.41'
 
+    //guava
+    implementation 'com.google.guava:guava:31.0.1-android'
+
+    //MLKIT
+    implementation 'com.google.mlkit:face-detection:16.1.5'
+
+
 
 
 

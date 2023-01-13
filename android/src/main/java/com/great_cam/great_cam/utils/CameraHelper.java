@@ -1,10 +1,12 @@
 package com.great_cam.great_cam.utils;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
+import android.media.Image;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -13,18 +15,22 @@ import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.Surface;
 
+import androidx.annotation.NonNull;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.FocusMeteringAction;
+import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
 import androidx.camera.core.TorchState;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.mlkit.vision.MlKitAnalyzer;
 import androidx.camera.video.FallbackStrategy;
 import androidx.camera.video.FileOutputOptions;
 import androidx.camera.video.PendingRecording;
@@ -41,7 +47,15 @@ import androidx.core.content.ContextCompat;
 import androidx.core.util.Consumer;
 import androidx.lifecycle.LifecycleOwner;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.face.Face;
+import com.google.mlkit.vision.face.FaceDetection;
+import com.google.mlkit.vision.face.FaceDetector;
+import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 
 import org.mp4parser.BasicContainer;
@@ -70,6 +84,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CameraHelper {
+    FaceDetectorOptions highAccuracyOpts =
+            new FaceDetectorOptions.Builder()
+                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+                    .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                    .build();
+
+    // Real-time contour detection
+    FaceDetectorOptions realTimeOpts =
+            new FaceDetectorOptions.Builder()
+                    .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+                    .build();
+
     private static final String[] CAMERA_PERMISSION = new String[]{Manifest.permission.CAMERA};
     private static final String[] WRITE_PER = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
     private static final int CAMERA_REQUEST_CODE = 10;
@@ -80,6 +107,7 @@ public class CameraHelper {
     private ImageCapture imageCapture;
     public Camera camera;
     public CameraInfo cameraInfo;
+    private GraphicOverlay overlay;
     private PreviewView previewView;
     private Preview preview;
     private CameraSelector cameraSelector;
@@ -107,10 +135,11 @@ public class CameraHelper {
     }
 
 
-    public CameraHelper(Context context, LifecycleOwner lifecycleOwner, PreviewView view) {
+    public CameraHelper(Context context, LifecycleOwner lifecycleOwner, PreviewView view,GraphicOverlay overlay) {
         this.context = context;
         this.lifecycleOwner = lifecycleOwner;
         this.previewView = view;
+        this.overlay = overlay;
 
     }
 
@@ -289,6 +318,7 @@ public class CameraHelper {
                 });
             });
         } else {
+
             videoFile.getVideo(options.getFile().getAbsolutePath());
         }
 
@@ -434,11 +464,14 @@ public class CameraHelper {
         cameraSelector = new CameraSelector
                 .Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-
-        camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+        ImageAnalysis ia = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
+        ia.setAnalyzer(ContextCompat.getMainExecutor(context), new FaceCountourProcessor(overlay));
+        camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture,ia);
         cameraInfo = camera.getCameraInfo();
 
+
         cameraControl = camera.getCameraControl();
+
     }
 
     private void bindFrontCamera() {
@@ -449,7 +482,9 @@ public class CameraHelper {
                 .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build();
         try {
             if (provider.hasCamera(cameraSelector)) {
-                camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+                ImageAnalysis ia = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
+                ia.setAnalyzer(ContextCompat.getMainExecutor(context), new FaceCountourProcessor(overlay));
+                camera = provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture,ia);
                 cameraInfo = camera.getCameraInfo();
                 cameraControl = camera.getCameraControl();
             }
@@ -489,6 +524,7 @@ public class CameraHelper {
     public interface VideoFile {
         void getVideo(String path);
     }
+
 
 }
 

@@ -32,6 +32,7 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.great_cam.great_cam.utils.CameraHelper;
+import com.great_cam.great_cam.utils.GraphicOverlay;
 import com.great_cam.great_cam.viewmodels.CameraViewModel;
 
 import java.io.File;
@@ -52,6 +53,7 @@ public class CameraActivity extends AppCompatActivity {
     private PreviewView preview;
     private CameraViewModel cameraViewModel;
     private ConstraintLayout root;
+    private GraphicOverlay overlay;
     // private SeekBar slider;
     private FlashType flashtype = FlashType.OFF;
     private MediaController mc;
@@ -206,7 +208,7 @@ public class CameraActivity extends AppCompatActivity {
         if (camera != null) {
             camera = null;
         }
-        camera = new CameraHelper(this.getApplicationContext(), this, preview);
+        camera = new CameraHelper(this.getApplicationContext(), this, preview,overlay);
 
     }
 
@@ -535,6 +537,7 @@ public class CameraActivity extends AppCompatActivity {
         optionSelector = getView(R.id.optionSelector);
         timer = getView(R.id.timer);
         btnStartVideoPreview = getView(R.id.btnStartVideoPreview);
+        overlay = getView(R.id.overlay);
 
 
     }
